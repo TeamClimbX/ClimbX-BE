@@ -88,4 +88,3 @@ nb-configuration.xml
 ## Miscellaneous
 ##############################
 *.log
-!/docker/dev/mysql/.env.dev

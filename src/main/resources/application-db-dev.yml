@@ -1,0 +1,10 @@
+spring:
+  config:
+    activate:
+      on-profile: db-dev
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/climbx?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
+
+    username: ${MYSQL_USER:dev_user}
+    password: ${MYSQL_PASSWORD:dev_password}

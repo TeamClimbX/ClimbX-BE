@@ -1,0 +1,26 @@
+spring:
+  profiles:
+    active: dev
+
+    group:
+      dev:
+        - db-dev
+
+    include:
+      - db
+
+  jpa:
+    generate-ddl: true
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+        use_sql_comments: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
