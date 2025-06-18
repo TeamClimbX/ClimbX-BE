@@ -1,6 +1,8 @@
 name: Spring Boot CI
 
 on:
+  workflow_dispatch:
+
   pull_request:
     branches: [ "develop", "main" ]
 
