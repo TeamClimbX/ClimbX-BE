@@ -3,7 +3,6 @@ package com.climbx.climbx.auth;
 import com.climbx.climbx.auth.dto.LoginResponseDto;
 import com.climbx.climbx.auth.dto.RefreshRequestDto;
 import com.climbx.climbx.auth.dto.UserOauth2InfoResponseDto;
-import com.climbx.climbx.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -13,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
@@ -20,32 +20,46 @@ import org.springframework.validation.annotation.Validated;
 public interface AuthApiDocumentation {
 
     @Operation(
-        summary = "Kakao OAuth2 인증 URL 요청 (개발용)",
-        description = "Kakao OAuth2 인증 URL을 생성하여 반환합니다. 개발 및 테스트 환경에서만 사용해야 합니다."
+        summary = "Kakao OAuth2 인증 페이지로 리다이렉트 (개발용)",
+        description = "Kakao OAuth2 인증 페이지로 자동 리다이렉트합니다. 개발 및 테스트 환경에서만 사용해야 합니다."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200",
-            description = "인증 URL 생성 성공",
+            responseCode = "302",
+            description = "카카오 인증 페이지로 리다이렉트",
+            content = @Content(
+                schema = @Schema(implementation = Void.class),
+                examples = @ExampleObject(
+                    name = "리다이렉트 응답",
+                    value = """
+                        HTTP 302 Found
+                        Location: https://kauth.kakao.com/oauth/authorize?client_id=...&redirect_uri=...&response_type=code
+                        """
+                )
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "500",
+            description = "서버 내부 오류",
             content = @Content(
                 schema = @Schema(implementation = com.climbx.climbx.common.response.ApiResponse.class),
                 examples = @ExampleObject(
-                    name = "인증 URL 생성 성공",
+                    name = "서버 오류",
                     value = """
                         {
-                          "httpStatus": 200,
-                          "statusMessage": "SUCCESS",
+                          "httpStatus": 500,
+                          "statusMessage": "서버 내부 오류가 발생했습니다.",
                           "timeStamp": "2024-01-01T10:00:00Z",
                           "responseTimeMs": 100,
                           "path": "/api/auth/oauth2/kakao/authorize-url",
-                          "data": "https://kauth.kakao.com/oauth/authorize?client_id=..."
+                          "data": null
                         }
                         """
                 )
             )
         )
     })
-    ApiResponse<String> getKakaoAuthorizeUrl();
+    ResponseEntity<Void> redirectToKakaoAuthorize();
 
     @Operation(
         summary = "OAuth2 콜백 처리",

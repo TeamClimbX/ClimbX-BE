@@ -25,7 +25,7 @@
       border-radius: 20px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
       padding: 2rem;
-      max-width: 600px;
+      max-width: 700px;
       width: 90%;
       text-align: center;
     }
@@ -197,192 +197,36 @@
 
   <!-- 액션 버튼들 -->
   <div class="actions" id="actions" style="display: none;">
-    <a class="btn" href="/kakao-login-test.html">🧪 테스트 페이지로 돌아가기</a>
-    <button class="btn btn-secondary" onclick="testUserInfo()">👤 사용자 정보 조회</button>
+    <button class="btn" onclick="testUserInfo()">👤 사용자 정보 조회</button>
+    <button class="btn" onclick="testRefreshToken()">🔄 토큰 갱신</button>
+    <a class="btn btn-secondary" href="/kakao-login-test.html">🏠 처음으로</a>
   </div>
 </div>
 
 <script>
-  // 전역 변수
   let tokens = {};
-  const serverUrl = 'http://localhost:8080'; // 기본 서버 URL
 
-  // 페이지 로드 시 자동 실행
-  window.onload = function () {
-    handleCallback();
-  };
-
-  async function handleCallback() {
+  // URL에서 인가 코드 추출
+  function getAuthorizationCode() {
     const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const error = urlParams.get('error');
-    const errorDescription = urlParams.get('error_description');
-
-    // URL 정리 (뒤로가기 시 깔끔하게)
-    if (window.history && window.history.replaceState) {
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-    }
-
-    // 오류 처리
-    if (error) {
-      showError(`카카오 로그인 오류: ${error}`, errorDescription);
-      return;
-    }
-
-    // 인가 코드 확인
-    if (!code) {
-      showError('인가 코드가 없습니다', 'URL에 code 파라미터가 포함되지 않았습니다.');
-      return;
-    }
-
-    // 토큰 교환 시도
-    await exchangeToken(code);
+    return urlParams.get('code');
   }
 
-  async function exchangeToken(code) {
-    try {
-      updateLoadingMessage('토큰 교환 요청 중...');
-
-      const response = await fetch(`${serverUrl}/api/auth/oauth2/kakao/callback?code=${code}`);
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.data) {
-          tokens = result.data;
-          await showSuccess();
-          await autoTestUserInfo(); // 자동으로 사용자 정보도 조회
-        } else {
-          showError('토큰 교환 실패', '응답 형식이 올바르지 않습니다.');
-        }
-      } else {
-        const errorJson = await response.json();
-        showError(`토큰 교환 실패 (${response.status})`, errorJson.message);
-      }
-    } catch (error) {
-      showError('네트워크 오류', `서버와 통신할 수 없습니다: ${error.message}`);
-    }
+  // 에러 처리
+  function getError() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return {
+      error: urlParams.get('error'),
+      errorDescription: urlParams.get('error_description')
+    };
   }
 
-  async function showSuccess() {
-    hideLoading();
-
-    const resultHtml = `
-                <h3>✅ 카카오 로그인 성공!</h3>
-                
-                <div class="step-info">
-                    <h4>📋 단계별 처리 결과</h4>
-                    <p>1. ✅ 카카오 인증 완료</p>
-                    <p>2. ✅ 인가 코드 수신</p>
-                    <p>3. ✅ 토큰 교환 성공</p>
-                    <p>4. 🔄 사용자 정보 조회 중...</p>
-                </div>
-                
-                <div class="token-info">
-                    <strong>🔑 발급된 JWT 토큰 정보:</strong><br><br>
-                    <strong>Token Type:</strong> ${tokens.tokenType}<br>
-                    <strong>Expires In:</strong> ${tokens.expiresIn}초 (${Math.floor(
-        tokens.expiresIn / 60)}분)<br><br>
-                    <strong>Access Token:</strong><br>
-                    ${tokens.accessToken.substring(0, 80)}...<br>
-                    <strong>Refresh Token:</strong><br>
-                    ${tokens.refreshToken.substring(0, 80)}...<br>
-                </div>
-            `;
-
-    showResult(resultHtml, 'success');
+  // 로딩 상태 숨기기
+  function hideLoading() {
+    document.getElementById('loadingState').style.display = 'none';
   }
 
-  async function autoTestUserInfo() {
-    try {
-      updateLoadingMessage('사용자 정보 조회 중...');
-
-      const response = await fetch(`${serverUrl}/api/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${tokens.accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const userInfo = await response.json();
-        appendUserInfo(userInfo);
-      } else {
-        console.error('사용자 정보 조회 실패:', response.status);
-        appendUserInfo(null, `사용자 정보 조회 실패 (${response.status})`);
-      }
-    } catch (error) {
-      console.error('사용자 정보 조회 오류:', error);
-      appendUserInfo(null, `네트워크 오류: ${error.message}`);
-    }
-  }
-
-  function appendUserInfo(userInfo, errorMessage = null) {
-    const resultContainer = document.getElementById('resultContent');
-
-    if (userInfo) {
-      const userInfoHtml = `
-                    <div class="user-info">
-                        <strong>👤 사용자 정보:</strong><br><br>
-                        <pre>${JSON.stringify(userInfo, null, 2)}</pre>
-                    </div>
-                `;
-      resultContainer.innerHTML += userInfoHtml;
-
-      // 단계 정보 업데이트
-      updateStepInfo('4. ✅ 사용자 정보 조회 완료');
-    } else {
-      const errorHtml = `
-                    <div class="step-info">
-                        <strong>⚠️ 사용자 정보 조회 실패:</strong><br>
-                        ${errorMessage}
-                    </div>
-                `;
-      resultContainer.innerHTML += errorHtml;
-      updateStepInfo('4. ❌ 사용자 정보 조회 실패');
-    }
-
-    showActions();
-  }
-
-  function updateStepInfo(newStep4Text) {
-    const stepInfo = document.querySelector('.step-info');
-    if (stepInfo) {
-      stepInfo.innerHTML = `
-                    <h4>📋 단계별 처리 결과</h4>
-                    <p>1. ✅ 카카오 인증 완료</p>
-                    <p>2. ✅ 인가 코드 수신</p>
-                    <p>3. ✅ 토큰 교환 성공</p>
-                    <p>${newStep4Text}</p>
-                `;
-    }
-  }
-
-  function showError(title, description) {
-    hideLoading();
-
-    const errorHtml = `
-                <h3>❌ ${title}</h3>
-                <p style="margin: 1rem 0;"><strong>상세 내용:</strong></p>
-                <div class="token-info">
-                    ${description}
-                </div>
-                
-                <div class="step-info">
-                    <h4>🔧 해결 방법:</h4>
-                    <ul style="text-align: left; margin: 0.5rem 0; padding-left: 1.5rem;">
-                        <li>환경변수 설정 확인 (KAKAO_REST_API_KEY, KAKAO_CLIENT_SECRET)</li>
-                        <li>카카오 개발자 콘솔에서 Redirect URI 등록 확인</li>
-                        <li>백엔드 서버가 정상 실행 중인지 확인</li>
-                        <li>브라우저 콘솔에서 네트워크 탭 확인</li>
-                    </ul>
-                </div>
-            `;
-
-    showResult(errorHtml, 'error');
-    showActions();
-  }
-
+  // 결과 표시
   function showResult(html, type) {
     const container = document.getElementById('resultContainer');
     const content = document.getElementById('resultContent');
@@ -390,66 +234,305 @@
     container.className = `result-container ${type}`;
     content.innerHTML = html;
     container.style.display = 'block';
+
+    // 액션 버튼 표시 (성공한 경우에만)
+    if (type === 'success') {
+      document.getElementById('actions').style.display = 'block';
+    }
   }
 
-  function hideLoading() {
-    document.getElementById('loadingState').style.display = 'none';
+  // 인가 코드를 토큰으로 교환
+  async function exchangeCodeForToken(code) {
+    try {
+      const response = await fetch(`/api/auth/oauth2/kakao/callback?code=${code}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`서버 오류: ${response.status} - ${errorText}`);
+      }
+
+      const apiResponse = await response.json();
+      console.log('서버 응답:', apiResponse);
+
+      // 응답 구조 확인을 위한 디버깅
+      if (!apiResponse) {
+        throw new Error('빈 응답을 받았습니다');
+      }
+
+      // httpStatus가 200이고 statusMessage가 SUCCESS인지 확인
+      if (apiResponse.httpStatus !== 200 || apiResponse.statusMessage !== 'SUCCESS') {
+        throw new Error(`API 오류: ${apiResponse.statusMessage || '알 수 없는 오류'}`);
+      }
+
+      if (!apiResponse.data) {
+        throw new Error('응답 데이터가 없습니다');
+      }
+
+      // 토큰 데이터 필드 확인
+      const tokenData = apiResponse.data;
+      if (!tokenData.accessToken) {
+        throw new Error('액세스 토큰이 응답에 포함되지 않았습니다');
+      }
+
+      tokens = tokenData;
+
+      // localStorage에 토큰 저장 (kakao-login-test.html에서 사용)
+      localStorage.setItem('climbx_access_token', tokenData.accessToken);
+      localStorage.setItem('climbx_refresh_token', tokenData.refreshToken);
+
+      return tokenData;
+    } catch (error) {
+      console.error('토큰 교환 실패:', error);
+      throw error;
+    }
   }
 
-  function updateLoadingMessage(message) {
-    const loadingElement = document.getElementById('loadingState');
-    const messageElement = loadingElement.querySelector('p');
-    messageElement.textContent = message;
-  }
-
-  function showActions() {
-    document.getElementById('actions').style.display = 'block';
-  }
-
+  // 사용자 정보 조회 테스트
   async function testUserInfo() {
     if (!tokens.accessToken) {
-      alert('토큰이 없습니다. 먼저 로그인을 완료해주세요.');
+      alert('액세스 토큰이 없습니다. 먼저 로그인을 완료해주세요.');
       return;
     }
 
     try {
-      const response = await fetch(`${serverUrl}/api/auth/me`, {
+      console.log('사용자 정보 조회 요청 - 토큰:', tokens.accessToken.substring(0, 20) + '...');
+
+      const response = await fetch('/api/auth/me', {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${tokens.accessToken}`,
           'Content-Type': 'application/json'
         }
       });
 
-      if (response.ok) {
-        const userInfo = await response.json();
-        alert(`사용자 정보 조회 성공!\n\n${JSON.stringify(userInfo, null, 2)}`);
+      const result = await response.json();
+      console.log('사용자 정보 응답:', result);
+
+      if (response.ok && result.httpStatus === 200 && result.statusMessage === 'SUCCESS') {
+        alert(
+            `✅ 사용자 정보 조회 성공!\n닉네임: ${result.data.nickname}\n이메일: ${result.data.providerEmail}\n제공자: ${result.data.provider}\nID: ${result.data.id}`);
       } else {
-        const errorText = await response.text();
-        alert(`사용자 정보 조회 실패 (${response.status}): ${errorText}`);
+        alert(`❌ 사용자 정보 조회 실패: ${result.statusMessage || result.message
+        || '알 수 없는 오류'}\n상태코드: ${response.status}`);
       }
     } catch (error) {
-      alert(`네트워크 오류: ${error.message}`);
+      console.error('사용자 정보 조회 오류:', error);
+      alert(`❌ 사용자 정보 조회 오류: ${error.message}`);
     }
   }
 
-  function copyToClipboard(text) {
+  // 토큰 갱신 테스트
+  async function testRefreshToken() {
+    if (!tokens.refreshToken) {
+      alert('리프레시 토큰이 없습니다. 먼저 로그인을 완료해주세요.');
+      return;
+    }
+
+    try {
+      console.log('토큰 갱신 요청 - 리프레시 토큰:', tokens.refreshToken.substring(0, 20) + '...');
+
+      const response = await fetch('/api/auth/oauth2/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          refreshToken: tokens.refreshToken
+        })
+      });
+
+      const result = await response.json();
+      console.log('토큰 갱신 응답:', result);
+
+      if (response.ok && result.httpStatus === 201 && result.statusMessage === 'SUCCESS') {
+        tokens = result.data; // 새 토큰으로 업데이트
+
+        // 화면의 토큰 정보도 업데이트
+        updateTokenDisplay();
+
+        alert('✅ 토큰 갱신 성공! 새로운 액세스 토큰을 받았습니다.\n화면의 토큰 정보도 업데이트되었습니다.');
+      } else {
+        alert(`❌ 토큰 갱신 실패: ${result.statusMessage || result.message
+        || '알 수 없는 오류'}\n상태코드: ${response.status}\n응답: ${JSON.stringify(result)}`);
+      }
+    } catch (error) {
+      console.error('토큰 갱신 오류:', error);
+      alert(`❌ 토큰 갱신 실패: ${error.message || '알 수 없는 오류'}`);
+    }
+  }
+
+  // 클립보드 복사 기능
+  function copyToClipboard(text, buttonElement) {
+    if (!navigator.clipboard) {
+      // 클립보드 API를 지원하지 않는 경우 fallback
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showCopySuccess(buttonElement);
+      } catch (err) {
+        alert('클립보드 복사 실패: ' + err.message);
+      }
+      document.body.removeChild(textArea);
+      return;
+    }
+
     navigator.clipboard.writeText(text).then(function () {
-      // 임시 알림 표시
-      const event = window.event;
-      const button = event.target;
-      const originalText = button.textContent;
-
-      button.textContent = '✅ 복사됨';
-      button.style.background = '#28a745';
-
-      setTimeout(() => {
-        button.textContent = originalText;
-        button.style.background = '';
-      }, 2000);
+      showCopySuccess(buttonElement);
     }).catch(function (err) {
-      alert('클립보드 복사 실패: ' + err);
+      console.error('클립보드 복사 실패:', err);
+      alert('클립보드 복사 실패: ' + err.message);
     });
   }
+
+  // 복사 성공 시 버튼 상태 변경
+  function showCopySuccess(buttonElement) {
+    const originalText = buttonElement.textContent;
+    const originalBackground = buttonElement.style.background;
+
+    buttonElement.textContent = '✅ 복사됨!';
+    buttonElement.style.background = '#28a745';
+
+    setTimeout(() => {
+      buttonElement.textContent = originalText;
+      buttonElement.style.background = originalBackground;
+    }, 2000);
+  }
+
+  // 화면의 토큰 정보 업데이트
+  function updateTokenDisplay() {
+    console.log('updateTokenDisplay 호출됨, tokens:', tokens);
+    const resultDiv = document.getElementById('resultContent');
+    console.log('resultDiv 찾음:', resultDiv);
+
+    if (resultDiv && tokens) {
+      const tokenSection = resultDiv.querySelector('.token-info pre');
+      console.log('tokenSection 찾음:', tokenSection);
+
+      if (tokenSection) {
+        // XSS 방지를 위해 텍스트를 이스케이프하면서 HTML을 생성
+        const accessTokenEscaped = tokens.accessToken.replace(/'/g, "\\'");
+        const refreshTokenEscaped = tokens.refreshToken.replace(/'/g, "\\'");
+
+        console.log('토큰 정보 업데이트 중...');
+        tokenSection.innerHTML = `<strong>Access Token:</strong> ${tokens.accessToken}
+<button class="copy-button" onclick="copyToClipboard('${accessTokenEscaped}', this)">📋 복사</button>
+
+<strong>Refresh Token:</strong> ${tokens.refreshToken}
+<button class="copy-button" onclick="copyToClipboard('${refreshTokenEscaped}', this)">📋 복사</button>
+
+<strong>Token Type:</strong> ${tokens.tokenType}
+<strong>Expires In:</strong> ${tokens.expiresIn}초
+
+<div style="margin-top: 10px; padding: 8px; background-color: #e8f5e8; border: 1px solid #4caf50; border-radius: 4px; color: #2e7d32;">
+  🔄 <strong>토큰이 업데이트되었습니다!</strong>
+</div>`;
+
+        console.log('토큰 정보 업데이트 완료!');
+
+        // 몇 초 후에 업데이트 메시지 제거
+        setTimeout(() => {
+          const updateMsg = tokenSection.querySelector('div[style*="background-color: #e8f5e8"]');
+          if (updateMsg) {
+            updateMsg.remove();
+          }
+        }, 3000);
+      } else {
+        console.error('tokenSection을 찾을 수 없습니다. .token-info pre 선택자가 올바른지 확인하세요.');
+      }
+    } else {
+      console.error('resultDiv 또는 tokens가 없습니다. resultDiv:', resultDiv, 'tokens:', tokens);
+    }
+  }
+
+  // 페이지 로드 시 실행
+  window.addEventListener('DOMContentLoaded', async function () {
+    console.log('카카오 OAuth2 콜백 처리 시작');
+
+    // 에러 확인
+    const error = getError();
+    if (error.error) {
+      hideLoading();
+      showResult(`
+                    <h3>❌ 카카오 로그인 실패</h3>
+                    <p><strong>오류:</strong> ${error.error}</p>
+                    <p><strong>설명:</strong> ${error.errorDescription || '알 수 없는 오류'}</p>
+                    <div class="actions">
+                        <a href="/kakao-login-test.html" class="btn">🏠 처음으로</a>
+                    </div>
+                `, 'error');
+      return;
+    }
+
+    // 인가 코드 확인
+    const code = getAuthorizationCode();
+    if (!code) {
+      hideLoading();
+      showResult(`
+                    <h3>❌ 인가 코드 없음</h3>
+                    <p>URL에 인가 코드가 포함되어 있지 않습니다.</p>
+                    <div class="actions">
+                        <a href="/kakao-login-test.html" class="btn">🏠 처음으로</a>
+                    </div>
+                `, 'error');
+      return;
+    }
+
+    try {
+      // 인가 코드를 토큰으로 교환
+      const tokenData = await exchangeCodeForToken(code);
+
+      hideLoading();
+      showResult(`
+                    <h3>✅ 카카오 로그인 성공!</h3>
+                    <div class="step-info">
+                        <h4>🎯 다음 단계</h4>
+                        <p>아래 버튼들을 사용해서 API를 테스트해보세요:</p>
+                        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                            <li>👤 <strong>사용자 정보 조회</strong>: 현재 로그인한 사용자의 정보를 가져옵니다</li>
+                            <li>🔄 <strong>토큰 갱신</strong>: 리프레시 토큰으로 새로운 액세스 토큰을 발급받습니다</li>
+                        </ul>
+                    </div>
+                    <div class="token-info">
+                        <h4>🔑 발급받은 토큰 정보:</h4>
+                        <pre><strong>Access Token:</strong> ${tokenData.accessToken}
+<button class="copy-button" onclick="copyToClipboard('${tokenData.accessToken}', this)">📋 복사</button>
+
+<strong>Refresh Token:</strong> ${tokenData.refreshToken}
+<button class="copy-button" onclick="copyToClipboard('${tokenData.refreshToken}', this)">📋 복사</button>
+
+<strong>Token Type:</strong> ${tokenData.tokenType}
+<strong>Expires In:</strong> ${tokenData.expiresIn}초</pre>
+                    </div>
+                `, 'success');
+
+    } catch (error) {
+      console.error('토큰 교환 실패:', error);
+      hideLoading();
+      showResult(`
+                    <h3>❌ 토큰 교환 실패</h3>
+                    <p><strong>오류 메시지:</strong> ${error.message}</p>
+                    <div class="step-info">
+                        <h4>🔍 문제 해결 방법</h4>
+                        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                            <li>서버가 실행 중인지 확인해주세요</li>
+                            <li>카카오 애플리케이션 설정을 확인해주세요</li>
+                            <li>Redirect URI가 올바르게 설정되어 있는지 확인해주세요</li>
+                        </ul>
+                    </div>
+                    <div class="actions">
+                        <a href="/kakao-login-test.html" class="btn">🏠 처음으로</a>
+                    </div>
+                `, 'error');
+    }
+  });
 </script>
 </body>
 </html> 

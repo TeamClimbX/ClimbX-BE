@@ -8,8 +8,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
-import com.climbx.climbx.common.enums.RoleType;
-import com.climbx.climbx.common.enums.UserHistoryCriteriaType;
+import com.climbx.climbx.common.comcode.ComcodeService;
 import com.climbx.climbx.fixture.GymFixture;
 import com.climbx.climbx.fixture.ProblemFixture;
 import com.climbx.climbx.fixture.UserFixture;
@@ -60,8 +59,36 @@ public class UserServiceTest {
     @Mock
     private UserRankingHistoryRepository userRankingHistoryRepository;
 
+    @Mock
+    private ComcodeService comcodeService;
+
     @InjectMocks
     private UserService userService;
+
+    private void setupUserRoleComcode() {
+        given(comcodeService.getCodeValue("USER"))
+            .willReturn("USER");
+    }
+
+    private void setupRatingComcode() {
+        given(comcodeService.getCodeValue("RATING"))
+            .willReturn("RATING");
+    }
+
+    private void setupRankingComcode() {
+        given(comcodeService.getCodeValue("RANKING"))
+            .willReturn("RANKING");
+    }
+
+    private void setupSolvedCountComcode() {
+        given(comcodeService.getCodeValue("SOLVED_COUNT"))
+            .willReturn("SOLVED_COUNT");
+    }
+
+    private void setupAcceptedComcode() {
+        given(comcodeService.getCodeValue("ACCEPTED"))
+            .willReturn("ACCEPTED");
+    }
 
     @Nested
     @DisplayName("사용자 목록 조회 및 검색")
@@ -71,6 +98,7 @@ public class UserServiceTest {
         @DisplayName("전체 사용자 목록을 정상 조회")
         void getUsers_Success_AllUsers() {
             // given
+            setupUserRoleComcode();
             String search = null;
 
             UserAccountEntity user1 = UserFixture.createUserAccountEntity(1L, "alice");
@@ -82,7 +110,7 @@ public class UserServiceTest {
             UserStatEntity userStat2 = UserFixture.createUserStatEntity(2L, 1300L);
             UserStatEntity userStat3 = UserFixture.createUserStatEntity(3L, 1400L);
 
-            given(userAccountRepository.findByRole(RoleType.USER))
+            given(userAccountRepository.findByRole("USER"))
                 .willReturn(userAccounts);
             given(userStatRepository.findByUserId(1L))
                 .willReturn(Optional.of(userStat1));
@@ -106,7 +134,7 @@ public class UserServiceTest {
             assertThat(result.get(1).nickname()).isEqualTo("bob");
             assertThat(result.get(2).nickname()).isEqualTo("charlie");
 
-            then(userAccountRepository).should().findByRole(RoleType.USER);
+            then(userAccountRepository).should().findByRole("USER");
             then(userAccountRepository).should(never())
                 .findByRoleAndNicknameContaining(any(), any());
         }
@@ -115,6 +143,7 @@ public class UserServiceTest {
         @DisplayName("빈 문자열로 검색 시 전체 사용자 목록 조회")
         void getUsers_Success_EmptySearch() {
             // given
+            setupUserRoleComcode();
             String search = "";
 
             UserAccountEntity user1 = UserFixture.createUserAccountEntity(1L, "test1");
@@ -124,7 +153,7 @@ public class UserServiceTest {
             UserStatEntity userStat1 = UserFixture.createUserStatEntity(1L);
             UserStatEntity userStat2 = UserFixture.createUserStatEntity(2L);
 
-            given(userAccountRepository.findByRole(RoleType.USER))
+            given(userAccountRepository.findByRole("USER"))
                 .willReturn(userAccounts);
             given(userStatRepository.findByUserId(1L))
                 .willReturn(Optional.of(userStat1));
@@ -138,7 +167,7 @@ public class UserServiceTest {
 
             // then
             assertThat(result).hasSize(2);
-            then(userAccountRepository).should().findByRole(RoleType.USER);
+            then(userAccountRepository).should().findByRole("USER");
             then(userAccountRepository).should(never())
                 .findByRoleAndNicknameContaining(any(), any());
         }
@@ -147,6 +176,7 @@ public class UserServiceTest {
         @DisplayName("공백만 있는 검색어로 검색 시 전체 사용자 목록 조회")
         void getUsers_Success_WhitespaceOnlySearch() {
             // given
+            setupUserRoleComcode();
             String search = "   ";
 
             UserAccountEntity user1 = UserFixture.createUserAccountEntity(1L, "user1");
@@ -154,7 +184,7 @@ public class UserServiceTest {
 
             UserStatEntity userStat1 = UserFixture.createUserStatEntity(1L);
 
-            given(userAccountRepository.findByRole(RoleType.USER))
+            given(userAccountRepository.findByRole("USER"))
                 .willReturn(userAccounts);
             given(userStatRepository.findByUserId(1L))
                 .willReturn(Optional.of(userStat1));
@@ -166,7 +196,7 @@ public class UserServiceTest {
 
             // then
             assertThat(result).hasSize(1);
-            then(userAccountRepository).should().findByRole(RoleType.USER);
+            then(userAccountRepository).should().findByRole("USER");
             then(userAccountRepository).should(never())
                 .findByRoleAndNicknameContaining(any(), any());
         }
@@ -175,6 +205,7 @@ public class UserServiceTest {
         @DisplayName("닉네임 검색으로 특정 사용자들 조회")
         void getUsers_Success_WithSearch() {
             // given
+            setupUserRoleComcode();
             String search = "test";
 
             UserAccountEntity user1 = UserFixture.createUserAccountEntity(1L, "testuser1");
@@ -184,7 +215,7 @@ public class UserServiceTest {
             UserStatEntity userStat1 = UserFixture.createUserStatEntity(1L, 1100L);
             UserStatEntity userStat2 = UserFixture.createUserStatEntity(2L, 1600L);
 
-            given(userAccountRepository.findByRoleAndNicknameContaining(RoleType.USER, "test"))
+            given(userAccountRepository.findByRoleAndNicknameContaining("USER", "test"))
                 .willReturn(userAccounts);
             given(userStatRepository.findByUserId(1L))
                 .willReturn(Optional.of(userStat1));
@@ -204,7 +235,7 @@ public class UserServiceTest {
             assertThat(result.get(1).nickname()).isEqualTo("testuser2");
 
             then(userAccountRepository).should()
-                .findByRoleAndNicknameContaining(RoleType.USER, "test");
+                .findByRoleAndNicknameContaining("USER", "test");
             then(userAccountRepository).should(never()).findByRole(any());
         }
 
@@ -212,11 +243,12 @@ public class UserServiceTest {
         @DisplayName("검색 결과가 없는 경우")
         void getUsers_Success_NoResults() {
             // given
+            setupUserRoleComcode();
             String search = "nonexistent";
             List<UserAccountEntity> emptyUserAccounts = List.of();
 
             given(
-                userAccountRepository.findByRoleAndNicknameContaining(RoleType.USER, "nonexistent"))
+                userAccountRepository.findByRoleAndNicknameContaining("USER", "nonexistent"))
                 .willReturn(emptyUserAccounts);
 
             // when
@@ -226,7 +258,7 @@ public class UserServiceTest {
             assertThat(result).isEmpty();
 
             then(userAccountRepository).should()
-                .findByRoleAndNicknameContaining(RoleType.USER, "nonexistent");
+                .findByRoleAndNicknameContaining("USER", "nonexistent");
             then(userStatRepository).should(never()).findByUserId(any());
         }
 
@@ -234,6 +266,7 @@ public class UserServiceTest {
         @DisplayName("검색어 앞뒤 공백 제거 후 검색")
         void getUsers_Success_TrimmedSearch() {
             // given
+            setupUserRoleComcode();
             String search = "  alice  ";
 
             UserAccountEntity user1 = UserFixture.createUserAccountEntity(1L, "alice123");
@@ -241,7 +274,7 @@ public class UserServiceTest {
 
             UserStatEntity userStat1 = UserFixture.createUserStatEntity(1L);
 
-            given(userAccountRepository.findByRoleAndNicknameContaining(RoleType.USER, "alice"))
+            given(userAccountRepository.findByRoleAndNicknameContaining("USER", "alice"))
                 .willReturn(userAccounts);
             given(userStatRepository.findByUserId(1L))
                 .willReturn(Optional.of(userStat1));
@@ -256,19 +289,20 @@ public class UserServiceTest {
             assertThat(result.get(0).nickname()).isEqualTo("alice123");
 
             then(userAccountRepository).should()
-                .findByRoleAndNicknameContaining(RoleType.USER, "alice");
+                .findByRoleAndNicknameContaining("USER", "alice");
         }
 
         @Test
         @DisplayName("사용자는 있지만 통계 정보가 없는 경우")
         void getUsers_UserStatNotFound() {
             // given
+            setupUserRoleComcode();
             String search = null;
 
             UserAccountEntity user1 = UserFixture.createUserAccountEntity(1L, "user1");
             List<UserAccountEntity> userAccounts = List.of(user1);
 
-            given(userAccountRepository.findByRole(RoleType.USER))
+            given(userAccountRepository.findByRole("USER"))
                 .willReturn(userAccounts);
             given(userStatRepository.findByUserId(1L))
                 .willReturn(Optional.empty());
@@ -282,6 +316,7 @@ public class UserServiceTest {
         @DisplayName("다양한 레이팅을 가진 사용자들 조회")
         void getUsers_Success_DifferentRatings() {
             // given
+            setupUserRoleComcode();
             String search = "pro";
 
             UserAccountEntity user1 = UserFixture.createUserAccountEntity(1L, "pro_player1");
@@ -296,7 +331,7 @@ public class UserServiceTest {
             UserStatEntity userStat3 = UserFixture.createUserStatEntity(3L, 2200L, 15L, 25L, 120L,
                 7L);
 
-            given(userAccountRepository.findByRoleAndNicknameContaining(RoleType.USER, "pro"))
+            given(userAccountRepository.findByRoleAndNicknameContaining("USER", "pro"))
                 .willReturn(userAccounts);
             given(userStatRepository.findByUserId(1L))
                 .willReturn(Optional.of(userStat1));
@@ -338,6 +373,7 @@ public class UserServiceTest {
         @DisplayName("ADMIN 역할 사용자는 조회되지 않음")
         void getUsers_AdminNotIncluded() {
             // given
+            setupUserRoleComcode();
             String search = null;
 
             UserAccountEntity adminUser = UserFixture.createAdminUserAccountEntity(1L, "admin");
@@ -346,7 +382,7 @@ public class UserServiceTest {
 
             UserStatEntity userStat = UserFixture.createUserStatEntity(2L);
 
-            given(userAccountRepository.findByRole(RoleType.USER))
+            given(userAccountRepository.findByRole("USER"))
                 .willReturn(userAccounts);
             given(userStatRepository.findByUserId(2L))
                 .willReturn(Optional.of(userStat));
@@ -360,14 +396,15 @@ public class UserServiceTest {
             assertThat(result).hasSize(1);
             assertThat(result.get(0).nickname()).isEqualTo("user");
 
-            then(userAccountRepository).should().findByRole(RoleType.USER);
-            then(userAccountRepository).should(never()).findByRole(RoleType.ADMIN);
+            then(userAccountRepository).should().findByRole("USER");
+            then(userAccountRepository).should(never()).findByRole("ADMIN");
         }
 
         @Test
         @DisplayName("ADMIN 역할 사용자는 검색에서도 제외됨")
         void getUsers_AdminNotIncludedInSearch() {
             // given
+            setupUserRoleComcode();
             String search = "admin";
 
             UserAccountEntity normalUser = UserFixture.createUserAccountEntity(1L, "admin_user");
@@ -375,7 +412,7 @@ public class UserServiceTest {
 
             UserStatEntity userStat = UserFixture.createUserStatEntity(1L);
 
-            given(userAccountRepository.findByRoleAndNicknameContaining(RoleType.USER, "admin"))
+            given(userAccountRepository.findByRoleAndNicknameContaining("USER", "admin"))
                 .willReturn(userAccounts);
             given(userStatRepository.findByUserId(1L))
                 .willReturn(Optional.of(userStat));
@@ -390,7 +427,7 @@ public class UserServiceTest {
             assertThat(result.get(0).nickname()).isEqualTo("admin_user");
 
             then(userAccountRepository).should()
-                .findByRoleAndNicknameContaining(RoleType.USER, "admin");
+                .findByRoleAndNicknameContaining("USER", "admin");
             then(userAccountRepository).should(never()).findByRole(any());
         }
     }
@@ -726,6 +763,7 @@ public class UserServiceTest {
             @DisplayName("사용자의 상위 문제를 정상 조회")
             void getUserTopProblems_Success() {
                 // given
+                setupAcceptedComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
                 Integer limit = 5;
@@ -749,7 +787,8 @@ public class UserServiceTest {
                 given(userAccountRepository.findByNickname(nickname))
                     .willReturn(Optional.of(userAccount));
                 given(
-                    submissionRepository.getUserSubmissionProblems(eq(userId), any(Pageable.class)))
+                    submissionRepository.getUserSubmissionProblems(eq(userId), eq("ACCEPTED"),
+                        any(Pageable.class)))
                     .willReturn(problemEntities);
 
                 // when
@@ -765,7 +804,7 @@ public class UserServiceTest {
                 assertThat(result).isEqualTo(expected);
 
                 then(submissionRepository).should()
-                    .getUserSubmissionProblems(eq(userId), any(Pageable.class));
+                    .getUserSubmissionProblems(eq(userId), eq("ACCEPTED"), any(Pageable.class));
             }
 
             @Test
@@ -781,13 +820,15 @@ public class UserServiceTest {
                 // when & then
                 assertThatThrownBy(() -> userService.getUserTopProblems(nickname, limit))
                     .isInstanceOf(UserNotFoundException.class);
-                then(submissionRepository).should(never()).getUserSubmissionProblems(any(), any());
+                then(submissionRepository).should(never())
+                    .getUserSubmissionProblems(any(), any(), any());
             }
 
             @Test
             @DisplayName("사용자에게 문제 제출 기록이 없는 경우")
             void getUserTopProblems_NoSubmissions() {
                 // given
+                setupAcceptedComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
                 Integer limit = 5;
@@ -799,7 +840,8 @@ public class UserServiceTest {
                 given(userAccountRepository.findByNickname(nickname))
                     .willReturn(Optional.of(userAccount));
                 given(
-                    submissionRepository.getUserSubmissionProblems(eq(userId), any(Pageable.class)))
+                    submissionRepository.getUserSubmissionProblems(eq(userId), eq("ACCEPTED"),
+                        any(Pageable.class)))
                     .willReturn(emptyProblems);
 
                 // when
@@ -809,7 +851,7 @@ public class UserServiceTest {
                 // then
                 assertThat(result).isEmpty();
                 then(submissionRepository).should()
-                    .getUserSubmissionProblems(eq(userId), any(Pageable.class));
+                    .getUserSubmissionProblems(eq(userId), eq("ACCEPTED"), any(Pageable.class));
             }
 
             @Test
@@ -835,6 +877,7 @@ public class UserServiceTest {
             @DisplayName("요청한 limit보다 적은 문제가 있는 경우")
             void getUserTopProblems_LessProblemsThanlimit() {
                 // given
+                setupAcceptedComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
                 Integer limit = 10;
@@ -855,7 +898,8 @@ public class UserServiceTest {
                 given(userAccountRepository.findByNickname(nickname))
                     .willReturn(Optional.of(userAccount));
                 given(
-                    submissionRepository.getUserSubmissionProblems(eq(userId), any(Pageable.class)))
+                    submissionRepository.getUserSubmissionProblems(eq(userId), eq("ACCEPTED"),
+                        any(Pageable.class)))
                     .willReturn(problemEntities);
 
                 // when
@@ -879,6 +923,7 @@ public class UserServiceTest {
             @DisplayName("사용자의 일별 해결 문제 수를 정상 조회")
             void getUserStreak_Success() {
                 // given
+                setupAcceptedComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
                 LocalDate from = LocalDate.of(2024, 1, 1);
@@ -895,7 +940,7 @@ public class UserServiceTest {
 
                 given(userAccountRepository.findByNickname(nickname))
                     .willReturn(Optional.of(userAccount));
-                given(submissionRepository.getUserDateSolvedCount(userId, from, to))
+                given(submissionRepository.getUserDateSolvedCount(userId, "ACCEPTED", from, to))
                     .willReturn(queryResults);
 
                 // when
@@ -910,7 +955,8 @@ public class UserServiceTest {
                 );
                 assertThat(result).isEqualTo(expected);
 
-                then(submissionRepository).should().getUserDateSolvedCount(userId, from, to);
+                then(submissionRepository).should()
+                    .getUserDateSolvedCount(userId, "ACCEPTED", from, to);
             }
 
             @Test
@@ -929,13 +975,14 @@ public class UserServiceTest {
                     .isInstanceOf(UserNotFoundException.class);
 
                 then(submissionRepository).should(never())
-                    .getUserDateSolvedCount(any(), any(), any());
+                    .getUserDateSolvedCount(any(), any(), any(), any());
             }
 
             @Test
             @DisplayName("해당 기간에 해결한 문제가 없는 경우")
             void getUserStreak_NoSolvedProblems() {
                 // given
+                setupAcceptedComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
                 LocalDate from = LocalDate.of(2024, 1, 1);
@@ -947,7 +994,7 @@ public class UserServiceTest {
 
                 given(userAccountRepository.findByNickname(nickname))
                     .willReturn(Optional.of(userAccount));
-                given(submissionRepository.getUserDateSolvedCount(userId, from, to))
+                given(submissionRepository.getUserDateSolvedCount(userId, "ACCEPTED", from, to))
                     .willReturn(emptyResults);
 
                 // when
@@ -956,13 +1003,15 @@ public class UserServiceTest {
 
                 // then
                 assertThat(result).isEmpty();
-                then(submissionRepository).should().getUserDateSolvedCount(userId, from, to);
+                then(submissionRepository).should()
+                    .getUserDateSolvedCount(userId, "ACCEPTED", from, to);
             }
 
             @Test
             @DisplayName("하루만 조회하는 경우")
             void getUserStreak_SingleDay() {
                 // given
+                setupAcceptedComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
                 LocalDate singleDate = LocalDate.of(2024, 1, 15);
@@ -976,7 +1025,8 @@ public class UserServiceTest {
 
                 given(userAccountRepository.findByNickname(nickname))
                     .willReturn(Optional.of(userAccount));
-                given(submissionRepository.getUserDateSolvedCount(userId, singleDate, singleDate))
+                given(submissionRepository.getUserDateSolvedCount(userId, "ACCEPTED", singleDate,
+                    singleDate))
                     .willReturn(queryResults);
 
                 // when
@@ -991,13 +1041,14 @@ public class UserServiceTest {
                 assertThat(result).isEqualTo(expected);
 
                 then(submissionRepository).should()
-                    .getUserDateSolvedCount(userId, singleDate, singleDate);
+                    .getUserDateSolvedCount(userId, "ACCEPTED", singleDate, singleDate);
             }
 
             @Test
             @DisplayName("날짜 순서가 잘못된 경우 (from > to)")
             void getUserStreak_InvalidDateRange() {
                 // given
+                setupAcceptedComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
                 LocalDate from = LocalDate.of(2024, 1, 31);
@@ -1009,7 +1060,7 @@ public class UserServiceTest {
 
                 given(userAccountRepository.findByNickname(nickname))
                     .willReturn(Optional.of(userAccount));
-                given(submissionRepository.getUserDateSolvedCount(userId, from, to))
+                given(submissionRepository.getUserDateSolvedCount(userId, "ACCEPTED", from, to))
                     .willReturn(emptyResults);
 
                 // when
@@ -1018,13 +1069,15 @@ public class UserServiceTest {
 
                 // then
                 assertThat(result).isEmpty();
-                then(submissionRepository).should().getUserDateSolvedCount(userId, from, to);
+                then(submissionRepository).should()
+                    .getUserDateSolvedCount(userId, "ACCEPTED", from, to);
             }
 
             @Test
             @DisplayName("연속되지 않은 날짜의 데이터 조회")
             void getUserStreak_NonConsecutiveDates() {
                 // given
+                setupAcceptedComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
                 LocalDate from = LocalDate.of(2024, 1, 1);
@@ -1042,7 +1095,7 @@ public class UserServiceTest {
 
                 given(userAccountRepository.findByNickname(nickname))
                     .willReturn(Optional.of(userAccount));
-                given(submissionRepository.getUserDateSolvedCount(userId, from, to))
+                given(submissionRepository.getUserDateSolvedCount(userId, "ACCEPTED", from, to))
                     .willReturn(queryResults);
 
                 // when
@@ -1057,13 +1110,15 @@ public class UserServiceTest {
                 );
                 assertThat(result).isEqualTo(expected);
 
-                then(submissionRepository).should().getUserDateSolvedCount(userId, from, to);
+                then(submissionRepository).should()
+                    .getUserDateSolvedCount(userId, "ACCEPTED", from, to);
             }
 
             @Test
             @DisplayName("null 파라미터로 조회하는 경우")
             void getUserStreak_WithNullParameters() {
                 // given
+                setupAcceptedComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
                 LocalDate from = null;
@@ -1079,7 +1134,7 @@ public class UserServiceTest {
 
                 given(userAccountRepository.findByNickname(nickname))
                     .willReturn(Optional.of(userAccount));
-                given(submissionRepository.getUserDateSolvedCount(userId, from, to))
+                given(submissionRepository.getUserDateSolvedCount(userId, "ACCEPTED", from, to))
                     .willReturn(queryResults);
 
                 // when
@@ -1093,13 +1148,15 @@ public class UserServiceTest {
                 );
                 assertThat(result).isEqualTo(expected);
 
-                then(submissionRepository).should().getUserDateSolvedCount(userId, null, null);
+                then(submissionRepository).should()
+                    .getUserDateSolvedCount(userId, "ACCEPTED", null, null);
             }
 
             @Test
             @DisplayName("from만 null인 경우")
             void getUserStreak_WithFromNull() {
                 // given
+                setupAcceptedComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
                 LocalDate from = null;
@@ -1115,7 +1172,7 @@ public class UserServiceTest {
 
                 given(userAccountRepository.findByNickname(nickname))
                     .willReturn(Optional.of(userAccount));
-                given(submissionRepository.getUserDateSolvedCount(userId, from, to))
+                given(submissionRepository.getUserDateSolvedCount(userId, "ACCEPTED", from, to))
                     .willReturn(queryResults);
 
                 // when
@@ -1129,13 +1186,15 @@ public class UserServiceTest {
                 );
                 assertThat(result).isEqualTo(expected);
 
-                then(submissionRepository).should().getUserDateSolvedCount(userId, null, to);
+                then(submissionRepository).should()
+                    .getUserDateSolvedCount(userId, "ACCEPTED", null, to);
             }
 
             @Test
             @DisplayName("to만 null인 경우")
             void getUserStreak_WithToNull() {
                 // given
+                setupAcceptedComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
                 LocalDate from = LocalDate.of(2024, 1, 1);
@@ -1151,7 +1210,7 @@ public class UserServiceTest {
 
                 given(userAccountRepository.findByNickname(nickname))
                     .willReturn(Optional.of(userAccount));
-                given(submissionRepository.getUserDateSolvedCount(userId, from, to))
+                given(submissionRepository.getUserDateSolvedCount(userId, "ACCEPTED", from, to))
                     .willReturn(queryResults);
 
                 // when
@@ -1165,7 +1224,8 @@ public class UserServiceTest {
                 );
                 assertThat(result).isEqualTo(expected);
 
-                then(submissionRepository).should().getUserDateSolvedCount(userId, from, null);
+                then(submissionRepository).should()
+                    .getUserDateSolvedCount(userId, "ACCEPTED", from, null);
             }
         }
 
@@ -1177,9 +1237,10 @@ public class UserServiceTest {
             @DisplayName("사용자의 레이팅 히스토리를 정상 조회")
             void getUserDailyHistory_Success() {
                 // given
+                setupRatingComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
-                UserHistoryCriteriaType criteria = UserHistoryCriteriaType.RATING;
+                String criteria = "RATING";
                 LocalDate from = LocalDate.of(2024, 1, 1);
                 LocalDate to = LocalDate.of(2024, 1, 3);
 
@@ -1218,7 +1279,7 @@ public class UserServiceTest {
             void getUserDailyHistory_UserNotFound() {
                 // given
                 String nickname = "nonexistentUser";
-                UserHistoryCriteriaType criteria = UserHistoryCriteriaType.RANKING;
+                String criteria = "RANKING";
                 LocalDate from = LocalDate.of(2024, 1, 1);
                 LocalDate to = LocalDate.of(2024, 1, 31);
 
@@ -1238,9 +1299,10 @@ public class UserServiceTest {
             @DisplayName("해당 기간에 히스토리가 없는 경우")
             void getUserDailyHistory_NoHistory() {
                 // given
+                setupSolvedCountComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
-                UserHistoryCriteriaType criteria = UserHistoryCriteriaType.SOLVED_COUNT;
+                String criteria = "SOLVED_COUNT";
                 LocalDate from = LocalDate.of(2024, 1, 1);
                 LocalDate to = LocalDate.of(2024, 1, 31);
 
@@ -1267,9 +1329,10 @@ public class UserServiceTest {
             @DisplayName("다양한 criteria 타입으로 조회")
             void getUserDailyHistory_DifferentCriteria() {
                 // given
+                setupRankingComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
-                UserHistoryCriteriaType criteria = UserHistoryCriteriaType.RANKING;
+                String criteria = "RANKING";
                 LocalDate from = LocalDate.of(2024, 1, 1);
                 LocalDate to = LocalDate.of(2024, 1, 2);
 
@@ -1305,9 +1368,10 @@ public class UserServiceTest {
             @DisplayName("null 파라미터로 조회하는 경우")
             void getUserDailyHistory_WithNullParameters() {
                 // given
+                setupRatingComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
-                UserHistoryCriteriaType criteria = UserHistoryCriteriaType.RATING;
+                String criteria = "RATING";
                 LocalDate from = null;
                 LocalDate to = null;
 
@@ -1343,9 +1407,10 @@ public class UserServiceTest {
             @DisplayName("하루만 조회하는 경우")
             void getUserDailyHistory_SingleDay() {
                 // given
+                setupRatingComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
-                UserHistoryCriteriaType criteria = UserHistoryCriteriaType.RATING;
+                String criteria = "RATING";
                 LocalDate singleDate = LocalDate.of(2024, 1, 15);
 
                 UserAccountEntity userAccount = UserFixture.createUserAccountEntity(userId,
@@ -1379,9 +1444,10 @@ public class UserServiceTest {
             @DisplayName("연속되지 않은 날짜의 히스토리 데이터 조회")
             void getUserDailyHistory_NonConsecutiveDates() {
                 // given
+                setupSolvedCountComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
-                UserHistoryCriteriaType criteria = UserHistoryCriteriaType.SOLVED_COUNT;
+                String criteria = "SOLVED_COUNT";
                 LocalDate from = LocalDate.of(2024, 1, 1);
                 LocalDate to = LocalDate.of(2024, 1, 10);
 
@@ -1420,9 +1486,10 @@ public class UserServiceTest {
             @DisplayName("from만 null인 경우")
             void getUserDailyHistory_WithFromNull() {
                 // given
+                setupRankingComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
-                UserHistoryCriteriaType criteria = UserHistoryCriteriaType.RANKING;
+                String criteria = "RANKING";
                 LocalDate from = null;
                 LocalDate to = LocalDate.of(2024, 1, 31);
 
@@ -1458,9 +1525,10 @@ public class UserServiceTest {
             @DisplayName("to만 null인 경우")
             void getUserDailyHistory_WithToNull() {
                 // given
+                setupRatingComcode();
                 String nickname = "testUser";
                 Long userId = 1L;
-                UserHistoryCriteriaType criteria = UserHistoryCriteriaType.RATING;
+                String criteria = "RATING";
                 LocalDate from = LocalDate.of(2024, 1, 1);
                 LocalDate to = null;
 

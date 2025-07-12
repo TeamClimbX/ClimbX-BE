@@ -1,13 +1,10 @@
 package com.climbx.climbx.submission.entity;
 
 import com.climbx.climbx.common.entity.BaseTimeEntity;
-import com.climbx.climbx.common.enums.SubmissionStatusType;
 import com.climbx.climbx.problem.entity.ProblemEntity;
 import com.climbx.climbx.video.entity.VideoEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -46,17 +43,15 @@ public class SubmissionEntity extends BaseTimeEntity {
     @JoinColumn(name = "problem_id")
     private ProblemEntity problemEntity; // 문제 엔티티
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20, nullable = false)
     @Size(max = 20)
-    private SubmissionStatusType status; // 제출 상태, 예: PENDING, ACCEPTED, REJECTED 등
+    private String status; // 제출 상태, 예: PENDING, ACCEPTED, REJECTED 등
 
     @Column(name = "reject_reason", length = 255, nullable = true)
     @Size(max = 255)
     private String rejectReason; // 거절 사유, nullable
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "appeal_status", length = 20)
     @Size(max = 20)
-    private SubmissionStatusType appealStatus; // 항소 상태, 예: PENDING, ACCEPTED, REJECTED 등
+    private String appealStatus; // 항소 상태, 예: PENDING, ACCEPTED, REJECTED 등
 }

@@ -1,7 +1,5 @@
 package com.climbx.climbx.fixture;
 
-import com.climbx.climbx.common.enums.RoleType;
-import com.climbx.climbx.common.enums.UserHistoryCriteriaType;
 import com.climbx.climbx.user.dto.DailyHistoryResponseDto;
 import com.climbx.climbx.user.dto.UserProfileResponseDto;
 import com.climbx.climbx.user.entity.UserAccountEntity;
@@ -34,7 +32,7 @@ public class UserFixture {
             .email(email)
             .statusMessage(DEFAULT_STATUS_MESSAGE)
             .profileImageUrl(DEFAULT_PROFILE_IMAGE_URL)
-            .role(RoleType.USER)
+            .role("USER")
             .build();
     }
 
@@ -63,7 +61,7 @@ public class UserFixture {
             nickname,
             statusMessage,
             profileImageUrl,
-            RoleType.USER
+            "USER"
         );
     }
 
@@ -72,7 +70,7 @@ public class UserFixture {
         String nickname,
         String statusMessage,
         String profileImageUrl,
-        RoleType role
+        String role
     ) {
         return UserAccountEntity.builder()
             .userId(userId)
@@ -89,7 +87,7 @@ public class UserFixture {
             nickname,
             DEFAULT_STATUS_MESSAGE,
             DEFAULT_PROFILE_IMAGE_URL,
-            RoleType.ADMIN
+            "ADMIN"
         );
     }
 
@@ -206,7 +204,7 @@ public class UserFixture {
     public static UserRankingHistoryEntity createUserRankingHistoryEntity(
         Long historyId,
         Long userId,
-        UserHistoryCriteriaType part,
+        String part,
         Long value
     ) {
         return UserRankingHistoryEntity.builder()
@@ -223,7 +221,7 @@ public class UserFixture {
         Long value
     ) {
         return createUserRankingHistoryEntity(
-            historyId, userId, UserHistoryCriteriaType.RATING, value);
+            historyId, userId, "RATING", value);
     }
 
     public static UserRankingHistoryEntity createRankingHistoryEntity(
@@ -232,7 +230,7 @@ public class UserFixture {
         Long value
     ) {
         return createUserRankingHistoryEntity(
-            historyId, userId, UserHistoryCriteriaType.RANKING, value
+            historyId, userId, "RANKING", value
         );
     }
 
@@ -242,7 +240,7 @@ public class UserFixture {
         Long value
     ) {
         return createUserRankingHistoryEntity(
-            historyId, userId, UserHistoryCriteriaType.SOLVED_COUNT, value
+            historyId, userId, "SOLVED_COUNT", value
         );
     }
 } 

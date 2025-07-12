@@ -1,6 +1,5 @@
 package com.climbx.climbx.user.repository;
 
-import com.climbx.climbx.common.enums.UserHistoryCriteriaType;
 import com.climbx.climbx.user.dto.DailyHistoryResponseDto;
 import com.climbx.climbx.user.entity.UserRankingHistoryEntity;
 import java.time.LocalDate;
@@ -30,7 +29,7 @@ public interface UserRankingHistoryRepository extends
         """)
     List<DailyHistoryResponseDto> getUserDailyHistory(
         @Param("userId") Long userId,
-        @Param("criteria") UserHistoryCriteriaType criteria,
+        @Param("criteria") String criteria,
         @Param("from") LocalDate from,
         @Param("to") LocalDate to
     );

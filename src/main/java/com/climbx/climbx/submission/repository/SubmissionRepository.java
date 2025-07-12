@@ -22,10 +22,11 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, Lo
           FROM SubmissionEntity s
           JOIN s.videoEntity v
          WHERE v.userId = :userId
-           AND s.status = com.climbx.climbx.common.enums.SubmissionStatusType.ACCEPTED
+           AND s.status = :status
         """)
     List<ProblemEntity> getUserSubmissionProblems(
         @Param("userId") Long userId,
+        @Param("status") String status,
         Pageable pageable
     );
 
@@ -40,7 +41,7 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, Lo
           FROM SubmissionEntity s
           JOIN s.videoEntity v
          WHERE v.userId = :userId
-           AND s.status = com.climbx.climbx.common.enums.SubmissionStatusType.ACCEPTED
+           AND s.status = :status
            AND (:from is NUll OR DATE(s.createdAt) >= :from)
            AND (:to is NULL OR DATE(s.createdAt) <= :to)
          GROUP BY DATE(s.createdAt)
@@ -48,6 +49,7 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, Lo
         """)
     List<DailyHistoryResponseDto> getUserDateSolvedCount(
         @Param("userId") Long userId,
+        @Param("status") String status,
         @Param("from") LocalDate from,
         @Param("to") LocalDate to
     );

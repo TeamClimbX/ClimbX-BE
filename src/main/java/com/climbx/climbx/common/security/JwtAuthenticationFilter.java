@@ -1,6 +1,5 @@
 package com.climbx.climbx.common.security;
 
-import com.climbx.climbx.common.enums.RoleType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
@@ -35,11 +35,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = jwtContext.extractTokenFromRequest(request);
 
             Long userId = jwtContext.extractSubject(token);
-            RoleType role = jwtContext.extractRole(token);
+            String role = jwtContext.extractRole(token);
 
             setAuthentication(new AuthenticationInfo(userId, role));
         } catch (Exception e) {
-            log.warn("인증되지 않은 요청: {}");
+            log.warn("인증되지 않은 요청");
             SecurityContextHolder.clearContext();
         } finally {
             filterChain.doFilter(request, response);
@@ -48,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private void setAuthentication(AuthenticationInfo authInfo) {
         List<GrantedAuthority> authorities = Collections.singletonList(
-            new SimpleGrantedAuthority(authInfo.role.name())
+            new SimpleGrantedAuthority(authInfo.role)
         );
 
         UsernamePasswordAuthenticationToken authentication =
@@ -65,9 +65,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static class AuthenticationInfo {
 
         final Long userId;
-        final RoleType role;
+        final String role;
 
-        AuthenticationInfo(Long userId, RoleType role) {
+        AuthenticationInfo(Long userId, String role) {
             this.userId = userId;
             this.role = role;
         }

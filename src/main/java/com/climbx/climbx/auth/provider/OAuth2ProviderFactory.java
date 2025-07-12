@@ -22,9 +22,9 @@ public class OAuth2ProviderFactory {
     }
 
     /**
-     * providerType에 따라 구현체 반환
+     * providerType에 따라 구현체를 반환
      */
-    private OAuth2Provider getProvider(OAuth2ProviderType providerType) {
+    public OAuth2Provider getProvider(OAuth2ProviderType providerType) {
         OAuth2Provider provider = providers.get(providerType);
         if (provider == null) {
             throw new ProviderNotSupportedException(providerType);
@@ -33,11 +33,7 @@ public class OAuth2ProviderFactory {
     }
 
     /**
-     * 문자열로부터 OAuth2Provider를 반환합니다.
-     *
-     * @param providerName 제공자 이름 (대소문자 구분 없음)
-     * @return OAuth2Provider 구현체
-     * @throws ProviderNotSupportedException 지원하지 않는 제공자인 경우
+     * 문자열 받아서 Provider 구현체 반환
      */
     public OAuth2Provider getProvider(String providerName) {
         OAuth2ProviderType providerType = OAuth2ProviderType.fromString(providerName);

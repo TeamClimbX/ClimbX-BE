@@ -15,10 +15,11 @@ import com.climbx.climbx.auth.dto.UserOauth2InfoResponseDto;
 import com.climbx.climbx.auth.entity.UserAuthEntity;
 import com.climbx.climbx.auth.enums.OAuth2ProviderType;
 import com.climbx.climbx.auth.exception.InvalidRefreshTokenException;
+import com.climbx.climbx.auth.exception.UserAuthNotFoundException;
 import com.climbx.climbx.auth.provider.OAuth2Provider;
 import com.climbx.climbx.auth.provider.OAuth2ProviderFactory;
 import com.climbx.climbx.auth.repository.UserAuthRepository;
-import com.climbx.climbx.common.enums.TokenType;
+import com.climbx.climbx.common.comcode.ComcodeService;
 import com.climbx.climbx.common.security.JwtContext;
 import com.climbx.climbx.fixture.UserAuthFixture;
 import com.climbx.climbx.fixture.UserFixture;
@@ -39,6 +40,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthService 테스트")
 class AuthServiceTest {
+
+    @Mock
+    private ComcodeService comcodeService;
 
     @Mock
     private JwtContext jwtContext;
@@ -69,6 +73,7 @@ class AuthServiceTest {
         @DisplayName("새로운 사용자에 대해 콜백을 성공적으로 처리한다")
         void shouldHandleCallbackForNewUser() {
             // given
+            final String provider = "kakao";
             String code = "test-code";
             String providerId = "12345";
             String email = "test@example.com";
@@ -91,7 +96,7 @@ class AuthServiceTest {
             // JWT 토큰 스터빙 - any() 매처 사용
             given(jwtContext.generateAccessToken(any(), any(), any())).willReturn(
                 "jwt-access-token");
-            given(jwtContext.generateRefreshToken(any())).willReturn("jwt-refresh-token");
+            given(jwtContext.generateRefreshToken(any(), any())).willReturn("jwt-refresh-token");
             given(jwtContext.getAccessTokenExpiration()).willReturn(3600L);
 
             // OAuth2 provider 스터빙 - String으로 변경
@@ -111,13 +116,14 @@ class AuthServiceTest {
             // 저장된 엔티티 반환
             UserAccountEntity savedUser = UserFixture.createUser(email, "클라이머_123");
             given(userAccountRepository.save(any(UserAccountEntity.class))).willReturn(savedUser);
+
+            // when
             given(userAuthRepository.save(any(UserAuthEntity.class))).willReturn(
                 mock(UserAuthEntity.class));
             given(userStatRepository.save(any(UserStatEntity.class))).willReturn(
                 mock(UserStatEntity.class));
 
             // when
-            String provider = "kakao";
             LoginResponseDto result = authService.handleCallback(provider, code);
 
             // then
@@ -135,6 +141,7 @@ class AuthServiceTest {
         @DisplayName("기존 사용자에 대해 콜백을 성공적으로 처리한다")
         void shouldHandleCallbackForExistingUser() {
             // given
+            final String provider = "kakao";
             String code = "test-code";
             String providerId = "12345";
 
@@ -157,7 +164,7 @@ class AuthServiceTest {
 
             given(jwtContext.generateAccessToken(any(), any(), any())).willReturn(
                 "jwt-access-token");
-            given(jwtContext.generateRefreshToken(any())).willReturn("jwt-refresh-token");
+            given(jwtContext.generateRefreshToken(any(), any())).willReturn("jwt-refresh-token");
             given(jwtContext.getAccessTokenExpiration()).willReturn(3600L);
 
             // OAuth2 provider 스터빙 - String으로 변경
@@ -171,7 +178,11 @@ class AuthServiceTest {
                 .willReturn(Optional.of(existingAuth));
 
             // when
-            String provider = "kakao";
+            given(userAuthRepository.findByProviderAndProviderId(OAuth2ProviderType.KAKAO,
+                providerId))
+                .willReturn(Optional.of(existingAuth));
+
+            // when
             LoginResponseDto result = authService.handleCallback(provider, code);
 
             // then
@@ -208,7 +219,7 @@ class AuthServiceTest {
 
             given(jwtContext.generateAccessToken(any(), any(), any())).willReturn(
                 "jwt-access-token");
-            given(jwtContext.generateRefreshToken(any())).willReturn("jwt-refresh-token");
+            given(jwtContext.generateRefreshToken(any(), any())).willReturn("jwt-refresh-token");
             given(jwtContext.getAccessTokenExpiration()).willReturn(3600L);
 
             // OAuth2 provider 스터빙 - String으로 변경
@@ -229,7 +240,6 @@ class AuthServiceTest {
             given(userAuthRepository.existsByUserAccountEntity_UserIdAndProvider(1L,
                 OAuth2ProviderType.KAKAO))
                 .willReturn(false);
-
             given(userAuthRepository.save(any(UserAuthEntity.class))).willReturn(
                 mock(UserAuthEntity.class));
 
@@ -259,13 +269,15 @@ class AuthServiceTest {
 
             UserAccountEntity user = UserFixture.createUser();
 
-            given(jwtContext.extractTokenType(refreshToken)).willReturn(TokenType.REFRESH);
+            given(comcodeService.getCodeValue("REFRESH")).willReturn("REFRESH");
+            given(jwtContext.extractTokenType(refreshToken)).willReturn("REFRESH");
             given(jwtContext.extractSubject(refreshToken)).willReturn(userId);
             given(jwtContext.extractProvider(refreshToken)).willReturn(provider);
             given(userAccountRepository.findByUserId(userId)).willReturn(Optional.of(user));
             given(jwtContext.generateAccessToken(userId, provider, user.role())).willReturn(
                 "new-access-token");
-            given(jwtContext.generateRefreshToken(userId)).willReturn("new-refresh-token");
+            given(jwtContext.generateRefreshToken(userId, provider)).willReturn(
+                "new-refresh-token");
             given(jwtContext.getAccessTokenExpiration()).willReturn(3600L);
 
             // when
@@ -281,7 +293,7 @@ class AuthServiceTest {
             then(jwtContext).should().extractSubject(refreshToken);
             then(jwtContext).should().extractProvider(refreshToken);
             then(jwtContext).should().generateAccessToken(userId, provider, user.role());
-            then(jwtContext).should().generateRefreshToken(userId);
+            then(jwtContext).should().generateRefreshToken(userId, provider);
         }
 
         @Test
@@ -290,7 +302,8 @@ class AuthServiceTest {
             // given
             String refreshToken = "invalid-type-token";
 
-            given(jwtContext.extractTokenType(refreshToken)).willReturn(TokenType.ACCESS);
+            given(comcodeService.getCodeValue("REFRESH")).willReturn("REFRESH");
+            given(jwtContext.extractTokenType(refreshToken)).willReturn("ACCESS");
 
             // when & then
             assertThatThrownBy(() -> authService.refreshAccessToken(refreshToken))
@@ -322,7 +335,8 @@ class AuthServiceTest {
             // given
             String refreshToken = "invalid-token";
 
-            given(jwtContext.extractTokenType(refreshToken)).willReturn(TokenType.REFRESH);
+            given(comcodeService.getCodeValue("REFRESH")).willReturn("REFRESH");
+            given(jwtContext.extractTokenType(refreshToken)).willReturn("REFRESH");
             given(jwtContext.extractSubject(refreshToken))
                 .willThrow(new RuntimeException("Invalid token"));
 
@@ -341,7 +355,8 @@ class AuthServiceTest {
             String refreshToken = "valid-refresh-token";
             Long userId = 999L;
 
-            given(jwtContext.extractTokenType(refreshToken)).willReturn(TokenType.REFRESH);
+            given(comcodeService.getCodeValue("REFRESH")).willReturn("REFRESH");
+            given(jwtContext.extractTokenType(refreshToken)).willReturn("REFRESH");
             given(jwtContext.extractSubject(refreshToken)).willReturn(userId);
             given(userAccountRepository.findByUserId(userId)).willReturn(Optional.empty());
 
@@ -352,7 +367,6 @@ class AuthServiceTest {
 
             then(jwtContext).should().extractTokenType(refreshToken);
             then(jwtContext).should().extractSubject(refreshToken);
-            // extractProvider는 UserNotFoundException 발생으로 호출되지 않음
         }
     }
 
@@ -414,11 +428,16 @@ class AuthServiceTest {
             given(userAuthRepository.findByUserIdAndIsPrimaryTrue(userId)).willReturn(
                 Optional.empty());
 
-            // when & then
-            assertThatThrownBy(() -> authService.getCurrentUserInfo(userId))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("no primary provider found for userId: " + userId);
+            // when
+            given(userAuthRepository.findByUserIdAndIsPrimaryTrue(userId)).willReturn(
+                Optional.empty());
 
+            // when
+            assertThatThrownBy(() -> authService.getCurrentUserInfo(userId))
+                .isInstanceOf(UserAuthNotFoundException.class)
+                .hasMessage("사용자 인증 정보를 찾을 수 없습니다.");
+
+            // then
             then(userAccountRepository).should().findByUserId(userId);
             then(userAuthRepository).should().findByUserIdAndIsPrimaryTrue(userId);
         }
@@ -432,6 +451,7 @@ class AuthServiceTest {
         @DisplayName("검증되지 않은 이메일로는 계정 연결을 하지 않는다")
         void shouldNotLinkAccountWithUnverifiedEmail() {
             // given
+            final String provider = "kakao";
             String code = "test-code";
             String providerId = "12345";
             String email = "test@example.com";
@@ -453,7 +473,7 @@ class AuthServiceTest {
             // JWT 토큰 스터빙 - any() 매처 사용
             given(jwtContext.generateAccessToken(any(), any(), any())).willReturn(
                 "jwt-access-token");
-            given(jwtContext.generateRefreshToken(any())).willReturn("jwt-refresh-token");
+            given(jwtContext.generateRefreshToken(any(), any())).willReturn("jwt-refresh-token");
             given(jwtContext.getAccessTokenExpiration()).willReturn(3600L);
 
             // OAuth2 provider 스터빙 - String으로 변경
@@ -467,6 +487,12 @@ class AuthServiceTest {
                 .willReturn(Optional.empty());
 
             UserAccountEntity savedUser = UserFixture.createUser(email, "클라이머_123");
+
+            // when
+            given(userAuthRepository.findByProviderAndProviderId(OAuth2ProviderType.KAKAO,
+                providerId))
+                .willReturn(Optional.empty());
+
             given(userAccountRepository.save(any(UserAccountEntity.class))).willReturn(savedUser);
             given(userAuthRepository.save(any(UserAuthEntity.class))).willReturn(
                 mock(UserAuthEntity.class));
@@ -474,7 +500,6 @@ class AuthServiceTest {
                 mock(UserStatEntity.class));
 
             // when
-            String provider = "kakao";
             authService.handleCallback(provider, code);
 
             // then
@@ -488,6 +513,7 @@ class AuthServiceTest {
         @DisplayName("이미 연결된 제공자로 로그인 시 추가 저장 없이 로그인된다")
         void shouldLoginWithoutAdditionalSaveWhenProviderAlreadyLinked() {
             // given
+            final String provider = "kakao";
             String code = "test-code";
             String providerId = "new-provider-id";
             String email = "test@example.com";
@@ -510,7 +536,7 @@ class AuthServiceTest {
 
             given(jwtContext.generateAccessToken(any(), any(), any())).willReturn(
                 "jwt-access-token");
-            given(jwtContext.generateRefreshToken(any())).willReturn("jwt-refresh-token");
+            given(jwtContext.generateRefreshToken(any(), any())).willReturn("jwt-refresh-token");
             given(jwtContext.getAccessTokenExpiration()).willReturn(3600L);
 
             // OAuth2 provider 스터빙 - String으로 변경
@@ -530,7 +556,17 @@ class AuthServiceTest {
                 .willReturn(true);
 
             // when
-            String provider = "kakao";
+            given(userAuthRepository.findByProviderAndProviderId(OAuth2ProviderType.KAKAO,
+                providerId))
+                .willReturn(Optional.empty());
+            given(userAccountRepository.findByEmail(email)).willReturn(Optional.of(existingUser));
+
+            // 이미 연결된 제공자
+            given(userAuthRepository.existsByUserAccountEntity_UserIdAndProvider(1L,
+                OAuth2ProviderType.KAKAO))
+                .willReturn(true);
+
+            // when
             LoginResponseDto result = authService.handleCallback(provider, code);
 
             // then

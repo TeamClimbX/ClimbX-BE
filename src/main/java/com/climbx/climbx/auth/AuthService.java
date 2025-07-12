@@ -7,11 +7,11 @@ import com.climbx.climbx.auth.dto.UserOauth2InfoResponseDto;
 import com.climbx.climbx.auth.entity.UserAuthEntity;
 import com.climbx.climbx.auth.enums.OAuth2ProviderType;
 import com.climbx.climbx.auth.exception.InvalidRefreshTokenException;
+import com.climbx.climbx.auth.exception.UserAuthNotFoundException;
 import com.climbx.climbx.auth.provider.OAuth2Provider;
 import com.climbx.climbx.auth.provider.OAuth2ProviderFactory;
 import com.climbx.climbx.auth.repository.UserAuthRepository;
-import com.climbx.climbx.common.enums.RoleType;
-import com.climbx.climbx.common.enums.TokenType;
+import com.climbx.climbx.common.comcode.ComcodeService;
 import com.climbx.climbx.common.security.JwtContext;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
@@ -34,6 +34,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private final ComcodeService comcodeService;
     private final JwtContext jwtContext;
     private final UserAccountRepository userAccountRepository;
     private final UserAuthRepository userAuthsRepository;
@@ -85,7 +86,8 @@ public class AuthService {
             user.role()
         );
 
-        String refreshToken = jwtContext.generateRefreshToken(user.userId());
+        String refreshToken = jwtContext.generateRefreshToken(user.userId(),
+            oauth2Provider.getProviderType().name());
 
         log.info("사용자 로그인 완료: userId={}, nickname={}, provider={}",
             user.userId(), user.nickname(), oauth2Provider.getProviderType().name());
@@ -104,7 +106,7 @@ public class AuthService {
     @Transactional
     public LoginResponseDto refreshAccessToken(String refreshToken) {
         Optional.of(jwtContext.extractTokenType(refreshToken))
-            .filter(type -> type == TokenType.REFRESH)
+            .filter(type -> type.equals(comcodeService.getCodeValue("REFRESH")))
             .orElseThrow(InvalidRefreshTokenException::new);
 
         Long userId = jwtContext.extractSubject(refreshToken);
@@ -118,7 +120,7 @@ public class AuthService {
 
         // 새로운 토큰 생성
         String newAccessToken = jwtContext.generateAccessToken(userId, provider, user.role());
-        String newRefreshToken = jwtContext.generateRefreshToken(userId);
+        String newRefreshToken = jwtContext.generateRefreshToken(userId, provider);
 
         log.info("토큰 갱신 완료: userId={}", userId);
 
@@ -140,9 +142,7 @@ public class AuthService {
         // 사용자 주 인증 수단 조회
         String provider = userAuthsRepository.findByUserIdAndIsPrimaryTrue(userId)
             .map(userAuth -> userAuth.provider().name())
-            .orElseThrow(
-                () -> new IllegalStateException("no primary provider found for userId: " + userId)
-            );
+            .orElseThrow(() -> new UserAuthNotFoundException(userId));
 
         return UserOauth2InfoResponseDto.builder()
             .id(user.userId())
@@ -262,7 +262,7 @@ public class AuthService {
 
         // 1. 사용자 계정 생성
         UserAccountEntity newUser = UserAccountEntity.builder()
-            .role(RoleType.USER)
+            .role(comcodeService.getCodeValue("USER"))
             .nickname(nickname)
             .email(userInfo.email())
             .profileImageUrl(userInfo.profileImageUrl())

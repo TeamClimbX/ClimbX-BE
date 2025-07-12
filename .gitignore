@@ -89,3 +89,4 @@ nb-configuration.xml
 ## Miscellaneous
 ##############################
 *.log
+!/.github/pull_request_template.md

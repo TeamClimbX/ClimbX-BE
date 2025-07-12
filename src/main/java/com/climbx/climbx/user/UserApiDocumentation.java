@@ -1,6 +1,5 @@
 package com.climbx.climbx.user;
 
-import com.climbx.climbx.common.enums.UserHistoryCriteriaType;
 import com.climbx.climbx.problem.dto.ProblemDetailsResponseDto;
 import com.climbx.climbx.user.dto.DailyHistoryResponseDto;
 import com.climbx.climbx.user.dto.UserProfileModifyRequestDto;
@@ -648,10 +647,10 @@ public interface UserApiDocumentation {
             name = "criteria",
             description = "조회 기준",
             required = true,
-            schema = @Schema(implementation = UserHistoryCriteriaType.class)
+            schema = @Schema(implementation = String.class)
         )
         @NotNull
-        UserHistoryCriteriaType criteria,
+        String criteria,
         @Parameter(
             name = "from",
             description = "조회 시작 날짜 (YYYY-MM-DD)",
