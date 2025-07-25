@@ -22,9 +22,14 @@ import com.climbx.climbx.common.dto.JwtTokenInfoDto;
 import com.climbx.climbx.common.enums.RoleType;
 import com.climbx.climbx.common.exception.InvalidTokenException;
 import com.climbx.climbx.common.util.JwtContext;
+import com.climbx.climbx.fixture.UserFixture;
+import com.climbx.climbx.submission.repository.SubmissionRepository;
 import com.climbx.climbx.user.entity.UserAccountEntity;
+import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserAccountRepository;
+import com.climbx.climbx.user.repository.UserRankingHistoryRepository;
 import com.climbx.climbx.user.repository.UserStatRepository;
+import com.climbx.climbx.video.repository.VideoRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -59,6 +64,15 @@ class AuthServiceTest {
 
     @Mock
     private RefreshTokenBlacklistService refreshTokenBlacklistService;
+
+    @Mock
+    private UserRankingHistoryRepository userRankingHistoryRepository;
+
+    @Mock
+    private VideoRepository videoRepository;
+
+    @Mock
+    private SubmissionRepository submissionRepository;
 
     @InjectMocks
     private AuthService authService;
@@ -269,6 +283,109 @@ class AuthServiceTest {
 
             then(jwtContext).should(never()).generateAccessToken(anyLong(), any());
             then(refreshTokenBlacklistService).should(never()).addToBlacklist(anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("회원 탈퇴 테스트")
+    class UnregisterUserTest {
+
+        @Test
+        @DisplayName("유효한 사용자 ID로 회원 탈퇴를 성공적으로 처리한다")
+        void shouldUnregisterUserSuccessfully() {
+            // given
+            Long userId = 1L;
+            String refreshToken = "valid-refresh-token";
+
+            UserAccountEntity userAccount = UserFixture.createUser(userId);
+
+            given(userAccountRepository.findByUserId(userId)).willReturn(Optional.of(userAccount));
+            given(userStatRepository.softDeleteByUserId(userId)).willReturn(1);
+            given(userAuthRepository.softDeleteAllByUserId(userId)).willReturn(2);
+            given(videoRepository.softDeleteAllByUserId(userId)).willReturn(5);
+            given(submissionRepository.softDeleteAllByUserId(userId)).willReturn(3);
+            given(userRankingHistoryRepository.softDeleteAllByUserId(userId)).willReturn(10);
+
+            doNothing().when(refreshTokenBlacklistService).addToBlacklist(refreshToken);
+
+            // when
+            authService.unregisterUser(userId, refreshToken);
+
+            // then
+            // 1. 로그아웃 처리 검증
+            then(refreshTokenBlacklistService).should().addToBlacklist(refreshToken);
+
+            // 2. 사용자 조회 검증
+            then(userAccountRepository).should().findByUserId(userId);
+
+            // 3. 모든 관련 리소스 bulk delete 검증
+            then(userStatRepository).should().softDeleteByUserId(userId);
+            then(userAuthRepository).should().softDeleteAllByUserId(userId);
+            then(videoRepository).should().softDeleteAllByUserId(userId);
+            then(submissionRepository).should().softDeleteAllByUserId(userId);
+            then(userRankingHistoryRepository).should().softDeleteAllByUserId(userId);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 사용자 ID로 회원 탈퇴 시도 시 예외를 던진다")
+        void shouldThrowExceptionWhenUserNotFoundForUnregister() {
+            // given
+            Long nonExistentUserId = 999L;
+            String refreshToken = "valid-refresh-token";
+
+            given(userAccountRepository.findByUserId(nonExistentUserId)).willReturn(
+                Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> authService.unregisterUser(nonExistentUserId, refreshToken))
+                .isInstanceOf(UserNotFoundException.class);
+
+            // 로그아웃은 처리되었는지 확인
+            then(refreshTokenBlacklistService).should(never()).addToBlacklist(anyString());
+            then(userAccountRepository).should().findByUserId(nonExistentUserId);
+
+            // 사용자가 존재하지 않으므로 bulk delete 메소드들은 호출되지 않음
+            then(userStatRepository).should(never()).softDeleteByUserId(anyLong());
+            then(userAuthRepository).should(never()).softDeleteAllByUserId(anyLong());
+            then(videoRepository).should(never()).softDeleteAllByUserId(anyLong());
+            then(submissionRepository).should(never()).softDeleteAllByUserId(anyLong());
+            then(userRankingHistoryRepository).should(never()).softDeleteAllByUserId(anyLong());
+        }
+
+        @Test
+        @DisplayName("사용자는 존재하지만 관련 데이터가 없는 경우에도 성공적으로 처리한다")
+        void shouldUnregisterUserSuccessfullyEvenWithNoRelatedData() {
+            // given
+            Long userId = 2L;
+            String refreshToken = "valid-refresh-token";
+
+            UserAccountEntity userAccount = UserFixture.createUser(userId);
+
+            given(userAccountRepository.findByUserId(userId)).willReturn(Optional.of(userAccount));
+            given(userStatRepository.softDeleteByUserId(userId)).willReturn(0);
+            given(userAuthRepository.softDeleteAllByUserId(userId)).willReturn(0);
+            given(videoRepository.softDeleteAllByUserId(userId)).willReturn(0);
+            given(submissionRepository.softDeleteAllByUserId(userId)).willReturn(0);
+            given(userRankingHistoryRepository.softDeleteAllByUserId(userId)).willReturn(0);
+
+            doNothing().when(refreshTokenBlacklistService).addToBlacklist(refreshToken);
+
+            // when
+            authService.unregisterUser(userId, refreshToken);
+
+            // then
+            // 1. 로그아웃 처리 검증
+            then(refreshTokenBlacklistService).should().addToBlacklist(refreshToken);
+
+            // 2. 사용자 조회 검증
+            then(userAccountRepository).should().findByUserId(userId);
+
+            // 3. 모든 관련 리소스 bulk delete 검증 (데이터가 없어도 bulk delete는 수행됨)
+            then(userStatRepository).should().softDeleteByUserId(userId);
+            then(userAuthRepository).should().softDeleteAllByUserId(userId);
+            then(videoRepository).should().softDeleteAllByUserId(userId);
+            then(submissionRepository).should().softDeleteAllByUserId(userId);
+            then(userRankingHistoryRepository).should().softDeleteAllByUserId(userId);
         }
     }
 }

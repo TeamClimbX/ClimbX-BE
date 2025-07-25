@@ -16,11 +16,14 @@ import com.climbx.climbx.common.enums.RoleType;
 import com.climbx.climbx.common.enums.TokenType;
 import com.climbx.climbx.common.exception.InvalidTokenException;
 import com.climbx.climbx.common.util.JwtContext;
+import com.climbx.climbx.submission.repository.SubmissionRepository;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserAccountRepository;
+import com.climbx.climbx.user.repository.UserRankingHistoryRepository;
 import com.climbx.climbx.user.repository.UserStatRepository;
+import com.climbx.climbx.video.repository.VideoRepository;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +43,9 @@ public class AuthService {
     private final UserStatRepository userStatRepository;
     private final ProviderIdTokenService oauth2IdTokenService;
     private final RefreshTokenBlacklistService refreshTokenBlacklistService;
+    private final UserRankingHistoryRepository userRankingHistoryRepository;
+    private final VideoRepository videoRepository;
+    private final SubmissionRepository submissionRepository;
 
     /**
      * OAuth2 콜백
@@ -150,6 +156,36 @@ public class AuthService {
         // 리프레시 토큰을 블랙리스트에 추가
         refreshTokenBlacklistService.addToBlacklist(refreshToken);
         log.info("사용자 로그아웃 완료");
+    }
+
+    /**
+     * 회원 탈퇴를 처리합니다.
+     */
+    @Transactional
+    public void unregisterUser(Long userId, String refreshToken) {
+        // 2. 사용자 조회
+        UserAccountEntity userAccount = userAccountRepository.findByUserId(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+
+        // 1. 먼저 로그아웃 처리
+        signOut(refreshToken);
+
+        log.info("회원 탈퇴 처리 시작: userId={}, nickname={}", userId, userAccount.nickname());
+
+        // 3. 사용자 소유 리소스들 bulk soft delete 처리 (성능 최적화)
+        int deletedUserStats = userStatRepository.softDeleteByUserId(userId);
+        int deletedUserAuths = userAuthsRepository.softDeleteAllByUserId(userId);
+        int deletedVideos = videoRepository.softDeleteAllByUserId(userId);
+        int deletedSubmissions = submissionRepository.softDeleteAllByUserId(userId);
+        int deletedHistories = userRankingHistoryRepository.softDeleteAllByUserId(userId);
+
+        // 4. 마지막에 사용자 계정 soft delete
+        userAccount.softDelete();
+
+        log.info(
+            "회원 탈퇴 처리 완료: userId={}, deletedStats={}, deletedAuths={}, deletedVideos={}, deletedSubmissions={}, deletedHistories={}",
+            userId, deletedUserStats, deletedUserAuths, deletedVideos, deletedSubmissions,
+            deletedHistories);
     }
 
     /**

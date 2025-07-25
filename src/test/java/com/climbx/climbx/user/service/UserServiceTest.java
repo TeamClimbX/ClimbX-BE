@@ -811,7 +811,8 @@ public class UserServiceTest {
             // then
             assertThat(result).isEmpty();
             then(submissionRepository).should()
-                .getUserSubmissionProblems(eq(userId), eq(StatusType.ACCEPTED), any(Pageable.class));
+                .getUserSubmissionProblems(eq(userId), eq(StatusType.ACCEPTED),
+                    any(Pageable.class));
         }
 
         @Test

@@ -15,6 +15,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 @Validated
 @Tag(name = "Authentication", description = "인증 관련 API")
@@ -343,13 +345,100 @@ public interface AuthApiDocumentation {
         )
     })
     void signOut(
-        @Parameter(
-            name = "refreshToken",
-            description = "HTTP Only 쿠키에 저장된 리프레시 토큰",
-            required = true
+        @RequestHeader(name = "Refresh-Token") String refreshToken,
+        HttpServletResponse response
+    );
+
+    @Operation(
+        summary = "회원 탈퇴",
+        description = "현재 로그인한 사용자의 회원 탈퇴를 처리합니다. 로그아웃 후 사용자 관련 데이터를 soft delete 처리합니다."
+    )
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "204",
+            description = "회원 탈퇴 성공",
+            content = @Content(
+                schema = @Schema(implementation = ApiResponseDto.class),
+                examples = @ExampleObject(
+                    name = "회원 탈퇴 성공",
+                    value = """
+                        {
+                          "httpStatus": 204,
+                          "statusMessage": "회원 탈퇴가 완료되었습니다.",
+                          "timeStamp": "2024-01-01T10:00:00Z",
+                          "responseTimeMs": 123,
+                          "path": "/api/auth/unregister",
+                          "data": null
+                        }
+                        """
+                )
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "잘못된 요청",
+            content = @Content(
+                schema = @Schema(implementation = ApiResponseDto.class),
+                examples = @ExampleObject(
+                    name = "잘못된 요청",
+                    value = """
+                        {
+                          "httpStatus": 400,
+                          "statusMessage": "잘못된 요청 형식입니다.",
+                          "timeStamp": "2024-01-01T10:00:00Z",
+                          "responseTimeMs": 45,
+                          "path": "/api/auth/unregister",
+                          "data": null
+                        }
+                        """
+                )
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(
+                schema = @Schema(implementation = ApiResponseDto.class),
+                examples = @ExampleObject(
+                    name = "인증 실패",
+                    value = """
+                        {
+                          "httpStatus": 401,
+                          "statusMessage": "인증이 필요합니다.",
+                          "timeStamp": "2024-01-01T10:00:00Z",
+                          "responseTimeMs": 45,
+                          "path": "/api/auth/unregister",
+                          "data": null
+                        }
+                        """
+                )
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "사용자를 찾을 수 없음",
+            content = @Content(
+                schema = @Schema(implementation = ApiResponseDto.class),
+                examples = @ExampleObject(
+                    name = "사용자를 찾을 수 없음",
+                    value = """
+                        {
+                          "httpStatus": 404,
+                          "statusMessage": "사용자를 찾을 수 없습니다.",
+                          "timeStamp": "2024-01-01T10:00:00Z",
+                          "responseTimeMs": 45,
+                          "path": "/api/auth/unregister",
+                          "data": null
+                        }
+                        """
+                )
+            )
         )
-        @NotBlank String refreshToken,
-        @Parameter(hidden = true)
+    })
+    void unregisterUser(
+        @AuthenticationPrincipal Long userId,
+        @RequestHeader(name = "Refresh-Token") String refreshToken,
         HttpServletResponse response
     );
 } 

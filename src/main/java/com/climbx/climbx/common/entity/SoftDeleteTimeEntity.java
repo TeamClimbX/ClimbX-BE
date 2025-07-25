@@ -18,14 +18,10 @@ public abstract class SoftDeleteTimeEntity {
      * soft delete 시간을 기록, null이면 삭제되지 않은 상태
      */
 
-    @Column(name = "deleted_at", nullable = true)
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
     public void softDelete() {
         this.deletedAt = LocalDateTime.now();
-    }
-
-    public boolean isDeleted() {
-        return this.deletedAt != null;
     }
 }
