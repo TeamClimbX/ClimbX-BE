@@ -6,6 +6,10 @@ spring:
         - db-dev
         - auth-dev
         - aws-dev
+      prod:
+        - db-prod
+        - auth-prod
+        - aws-prod
 
   jpa:
     open-in-view: false
