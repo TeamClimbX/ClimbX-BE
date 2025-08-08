@@ -63,19 +63,21 @@ public interface RankingApiDocumentation {
                             "totalPage": 15,
                             "rankingList": [
                               {
-                                "nickname": "alice",
-                                "statusMessage": "열심히 클라이밍 중!",
-                                "profileImageUrl": "https://example.com/profile/alice.jpg",
-                                "rating": 1800,
-                                "currentStreak": 25,
-                                "longestStreak": 45,
-                                "solvedCount": 120
+                                "nickname": "ivan",
+                                "statusMessage": "bouldering beast.",
+                                "profileImageCdnUrl": "/images/ivan.png",
+                                "rating": 3000,
+                                "ranking": 1,
+                                "currentStreak": 50,
+                                "longestStreak": 50,
+                                "solvedCount": 400
                               },
                               {
                                 "nickname": "bob",
                                 "statusMessage": "클라이밍 마스터가 되겠다!",
-                                "profileImageUrl": "https://example.com/profile/bob.jpg",
+                                "profileImageCdnUrl": "https://example.com/profile/bob.jpg",
                                 "rating": 1650,
+                                "ranking": 2,
                                 "currentStreak": 12,
                                 "longestStreak": 30,
                                 "solvedCount": 85

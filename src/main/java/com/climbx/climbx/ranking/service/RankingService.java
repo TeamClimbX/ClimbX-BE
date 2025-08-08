@@ -7,8 +7,10 @@ import com.climbx.climbx.ranking.dto.UserRankingResponseDto;
 import com.climbx.climbx.ranking.repository.RankingRepository;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -43,8 +46,16 @@ public class RankingService {
         Page<UserStatEntity> rankingPage = rankingRepository.findAllByUserRole(sortedPageable,
             RoleType.USER);
 
-        List<UserRankingResponseDto> rankingList = rankingPage.getContent().stream()
-            .map(UserRankingResponseDto::from)
+        List<UserStatEntity> userStats = rankingPage.getContent();
+
+        Long startRank = pageable.getOffset() + 1;
+
+        log.debug("랭킹 조회: criteria={}, page={}, size={}, totalElements={}, startRank={}",
+            criteria, pageable.getPageNumber(), pageable.getPageSize(),
+            rankingPage.getTotalElements(), startRank);
+
+        List<UserRankingResponseDto> rankingList = IntStream.range(0, userStats.size())
+            .mapToObj(i -> UserRankingResponseDto.from(userStats.get(i), startRank + i))
             .toList();
 
         // 페이징 정보 계산
