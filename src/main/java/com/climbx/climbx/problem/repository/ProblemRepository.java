@@ -14,27 +14,27 @@ public interface ProblemRepository extends JpaRepository<ProblemEntity, UUID> {
 
     @Query("""
                 SELECT new com.climbx.climbx.problem.dto.ProblemInfoResponseDto(
-                    p.problemId, 
+                    p.problemId,
                     g.gymId,
                     g.name,
                     ga.gymAreaId,
                     ga.areaName,
-                    p.localLevel, 
-                    p.holdColor, 
-                    p.problemRating,
-                    p.problemTier, 
+                    p.localLevel,
+                    p.holdColor,
+                    p.tier,
+                    p.rating,
                     p.problemImageCdnUrl,
                     p.activeStatus,
                     p.createdAt
                 )
-                FROM ProblemEntity p 
-                JOIN  p.gymArea ga 
-                JOIN  p.gym g 
-                WHERE (:gymId IS NULL OR p.gym.gymId = :gymId) AND 
-                (:gymAreaId IS NULL OR p.gymArea.gymAreaId = :gymAreaId) AND 
-                (:localLevel IS NULL OR p.localLevel = :localLevel) AND 
-                (:holdColor IS NULL OR p.holdColor = :holdColor) AND 
-                (:problemTier IS NULL OR p.problemTier = :problemTier)  AND 
+                FROM ProblemEntity p
+                JOIN  p.gymArea ga
+                JOIN  p.gymEntity g
+                WHERE (:gymId IS NULL OR p.gymEntity.gymId = :gymId) AND
+                (:gymAreaId IS NULL OR p.gymArea.gymAreaId = :gymAreaId) AND
+                (:localLevel IS NULL OR p.localLevel = :localLevel) AND
+                (:holdColor IS NULL OR p.holdColor = :holdColor) AND
+                (:problemTier IS NULL OR p.tier = :problemTier) AND
                 (:activeStatus IS NULL OR p.activeStatus = :activeStatus)
         """)
     List<ProblemInfoResponseDto> findByGymAndAreaAndLevelAndColorAndProblemTierAndActiveStatus(

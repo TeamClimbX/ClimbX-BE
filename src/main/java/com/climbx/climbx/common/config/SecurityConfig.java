@@ -36,6 +36,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/api/videos/upload").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/submissions/*").authenticated()
                     .requestMatchers(HttpMethod.PATCH, "/api/submissions/*").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/api/problems/*").authenticated()
                     .anyRequest().permitAll()
             )
             .exceptionHandling(ex -> ex

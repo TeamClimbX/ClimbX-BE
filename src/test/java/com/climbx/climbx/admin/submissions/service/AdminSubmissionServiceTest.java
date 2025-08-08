@@ -107,11 +107,11 @@ class AdminSubmissionServiceTest {
 
             List<ProblemInfoResponseDto> topProblems = List.of(
                 ProblemInfoResponseDto.from(
-                    ProblemEntity.builder().problemRating(1300).build(), gym1, gymArea1),
+                    ProblemEntity.builder().rating(1300).build(), gym1, gymArea1),
                 ProblemInfoResponseDto.from(
-                    ProblemEntity.builder().problemRating(1250).build(), gym2, gymArea2),
+                    ProblemEntity.builder().rating(1250).build(), gym2, gymArea2),
                 ProblemInfoResponseDto.from(
-                    ProblemEntity.builder().problemRating(1200).build(), gym3, gymArea3)
+                    ProblemEntity.builder().rating(1200).build(), gym3, gymArea3)
             );
 
             given(submissionRepository.findById(videoId))

@@ -2,6 +2,7 @@ package com.climbx.climbx.user.dto;
 
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
+import com.climbx.climbx.user.enums.UserTierType;
 import java.util.List;
 import lombok.Builder;
 
@@ -18,7 +19,7 @@ public record UserProfileResponseDto(
 
     Integer rating,
 
-    String tier,
+    UserTierType tier,
 
     List<TagRatingResponseDto> categoryRatings,
 
@@ -38,7 +39,7 @@ public record UserProfileResponseDto(
     public static UserProfileResponseDto from(
         UserAccountEntity account,
         UserStatEntity stat,
-        String tier,
+        UserTierType tier,
         Integer ranking,
         List<TagRatingResponseDto> categoryRatings
     ) {

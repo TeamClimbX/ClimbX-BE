@@ -2,20 +2,24 @@ package com.climbx.climbx.submission.repository;
 
 import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.problem.dto.ProblemInfoResponseDto;
-import com.climbx.climbx.submission.dto.TagRatingPairDto;
+import com.climbx.climbx.problem.dto.TagRatingPairDto;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.user.dto.DailyHistoryResponseDto;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+@SQLRestriction("deleted_at IS NULL")
 public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UUID> {
 
     /**
@@ -32,8 +36,8 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
             ga.areaName,
             p.localLevel,
             p.holdColor,
-            p.problemRating,
-            p.problemTier,
+            p.tier,
+            p.rating,
             p.problemImageCdnUrl,
             p.activeStatus,
             p.createdAt
@@ -41,11 +45,11 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
         FROM SubmissionEntity s
         JOIN s.videoEntity v
         JOIN s.problemEntity p
-        JOIN p.gym g
+        JOIN p.gymEntity g
         JOIN p.gymArea ga
         WHERE v.userId = :userId
           AND s.status = :status
-        ORDER BY p.problemRating DESC
+        ORDER BY p.rating DESC
         """)
     List<ProblemInfoResponseDto> getUserTopProblems(
         @Param("userId") Long userId,
@@ -107,12 +111,12 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
         JOIN FETCH s.videoEntity v
         JOIN FETCH v.userAccountEntity u
         JOIN FETCH s.problemEntity p
-        JOIN FETCH p.gym g
+        JOIN FETCH p.gymEntity g
         WHERE (:userId IS NULL OR v.userId = :userId)
           AND (:problemId IS NULL OR p.problemId = :problemId)
           AND (:holdColor IS NULL OR p.holdColor = :holdColor)
-          AND (:ratingFrom IS NULL OR p.problemRating >= :ratingFrom)
-          AND (:ratingTo IS NULL OR p.problemRating <= :ratingTo)
+          AND (:ratingFrom IS NULL OR p.rating >= :ratingFrom)
+          AND (:ratingTo IS NULL OR p.rating <= :ratingTo)
         """)
     Page<SubmissionEntity> findSubmissionsWithFilters(
         @Param("userId") Long userId,
@@ -125,8 +129,8 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
 
     // 1) Primary 만
     @Query("""
-          SELECT new com.climbx.climbx.submission.dto.TagRatingPairDto(
-                p.primaryTag, p.problemRating
+          SELECT new com.climbx.climbx.problem.dto.TagRatingPairDto(
+                p.primaryTag, p.rating
             )
           FROM SubmissionEntity s
           JOIN s.videoEntity v
@@ -140,8 +144,8 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
 
     // 2) Secondary 만
     @Query("""
-          SELECT new com.climbx.climbx.submission.dto.TagRatingPairDto(
-                p.secondaryTag, p.problemRating
+          SELECT new com.climbx.climbx.problem.dto.TagRatingPairDto(
+                p.secondaryTag, p.rating
             )
           FROM SubmissionEntity s
           JOIN s.videoEntity v
@@ -165,4 +169,10 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
         return Stream.concat(primaryTags.stream(), secondaryTags.stream())
             .toList();
     }
+
+    // ProblemEntity를 fetch join
+    @EntityGraph(attributePaths = "problemEntity")
+    Optional<SubmissionEntity> findByProblemIdAndVideoEntity_UserIdAndStatus(
+        UUID problemId, Long userId, StatusType status
+    );
 }

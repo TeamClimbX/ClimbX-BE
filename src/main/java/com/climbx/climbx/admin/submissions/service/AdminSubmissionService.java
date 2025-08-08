@@ -90,7 +90,7 @@ public class AdminSubmissionService {
                 StatusType.ACCEPTED,
                 Pageable.ofSize(50)
             ).stream()
-            .map(ProblemInfoResponseDto::problemRating)
+            .map(ProblemInfoResponseDto::rating)
             .toList();
     }
 }

@@ -16,6 +16,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.SortDefault;
 import org.springframework.data.web.SortDefault.SortDefaults;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -72,13 +73,13 @@ public class SubmissionController implements SubmissionApiDocumentation {
     @PostMapping
     @SuccessStatus(value = HttpStatus.CREATED)
     public SubmissionResponseDto createSubmission(
-        @RequestParam(name = "nickname")
-        String nickname,
+        @AuthenticationPrincipal
+        Long userId,
 
         @RequestBody
         SubmissionCreateRequestDto request
     ) {
-        return submissionService.createSubmission(nickname, request);
+        return submissionService.createSubmission(userId, request);
     }
 
     @Override
@@ -95,13 +96,13 @@ public class SubmissionController implements SubmissionApiDocumentation {
     @PatchMapping("/{videoId}")
     @SuccessStatus(value = HttpStatus.OK)
     public SubmissionCancelResponseDto cancelSubmission(
-        @RequestParam(name = "nickname")
-        String nickname,
+        @AuthenticationPrincipal
+        Long userId,
 
         @PathVariable(name = "videoId")
         UUID videoId
     ) {
-        return submissionService.cancelSubmission(nickname, videoId);
+        return submissionService.cancelSubmission(userId, videoId);
     }
 
     @Override
@@ -118,8 +119,8 @@ public class SubmissionController implements SubmissionApiDocumentation {
     @PostMapping("/{videoId}/appeal")
     @SuccessStatus(value = HttpStatus.CREATED)
     public SubmissionAppealResponseDto appealSubmission(
-        @RequestParam(name = "nickname")
-        String nickname,
+        @AuthenticationPrincipal
+        Long userId,
 
         @PathVariable(name = "videoId")
         UUID videoId,
@@ -127,6 +128,6 @@ public class SubmissionController implements SubmissionApiDocumentation {
         @RequestBody
         SubmissionAppealRequestDto request // Optional reason for appeal
     ) {
-        return submissionService.appealSubmission(nickname, videoId, request);
+        return submissionService.appealSubmission(userId, videoId, request);
     }
 }

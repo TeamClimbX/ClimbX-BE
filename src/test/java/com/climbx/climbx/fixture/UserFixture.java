@@ -7,6 +7,7 @@ import com.climbx.climbx.user.dto.UserProfileResponseDto;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserRankingHistoryEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
+import com.climbx.climbx.user.enums.UserTierType;
 import java.time.LocalDate;
 import java.util.Collections;
 
@@ -84,32 +85,6 @@ public class UserFixture {
             .build();
     }
 
-    // UserAccountEntity와 UserStatEntity를 함께 생성하는 메서드
-    public static UserAccountEntity createUserAccountEntityWithStats(Long userId, String nickname) {
-        UserStatEntity userStat = createUserStatEntity(userId);
-        UserAccountEntity user = createUserAccountEntity(userId, nickname);
-
-        // Builder 패턴을 사용하여 userStatEntity 설정
-        return UserAccountEntity.builder()
-            .userId(user.userId())
-            .nickname(user.nickname())
-            .statusMessage(user.statusMessage())
-            .profileImageCdnUrl(user.profileImageCdnUrl())
-            .role(user.role())
-            .userStatEntity(userStat)
-            .build();
-    }
-
-    public static UserAccountEntity createAdminUserAccountEntity(Long userId, String nickname) {
-        return createUserAccountEntity(
-            userId,
-            nickname,
-            DEFAULT_STATUS_MESSAGE,
-            DEFAULT_PROFILE_IMAGE_URL,
-            "ADMIN"
-        );
-    }
-
     // UserStatEntity 생성 메서드들  
     public static UserStatEntity createUserStatEntity(Long userId) {
         return createUserStatEntity(userId, DEFAULT_RATING);
@@ -165,7 +140,7 @@ public class UserFixture {
             .profileImageCdnUrl(DEFAULT_PROFILE_IMAGE_URL)
             .ranking(ranking)
             .rating(rating)
-            .tier("BRONZE1")
+            .tier(UserTierType.fromValue(rating))
             .categoryRatings(Collections.emptyList())
             .currentStreak(DEFAULT_CURRENT_STREAK)
             .longestStreak(DEFAULT_LONGEST_STREAK)
@@ -193,7 +168,7 @@ public class UserFixture {
             .profileImageCdnUrl(profileImageUrl)
             .ranking(ranking)
             .rating(rating)
-            .tier("SILVER1")
+            .tier(UserTierType.fromValue(rating))
             .categoryRatings(Collections.emptyList())
             .currentStreak(currentStreak)
             .longestStreak(longestStreak)
@@ -215,18 +190,6 @@ public class UserFixture {
             .build();
     }
 
-    public static DailyHistoryResponseDto createRatingHistoryResponseDto(LocalDate date) {
-        return createDailyHistoryResponseDto(date, DEFAULT_RATING);
-    }
-
-    public static DailyHistoryResponseDto createRankingHistoryResponseDto(LocalDate date) {
-        return createDailyHistoryResponseDto(date, DEFAULT_RANKING);
-    }
-
-    public static DailyHistoryResponseDto createSolvedCountHistoryResponseDto(LocalDate date) {
-        return createDailyHistoryResponseDto(date, DEFAULT_SOLVED_PROBLEMS_COUNT);
-    }
-
     // UserRankingHistoryEntity 생성 메서드들
     public static UserRankingHistoryEntity createUserRankingHistoryEntity(
         Long historyId,
@@ -240,34 +203,5 @@ public class UserFixture {
             .criteria(CriteriaType.from(criteria))
             .value(value)
             .build();
-    }
-
-    public static UserRankingHistoryEntity createRatingHistoryEntity(
-        Long historyId,
-        Long userId,
-        Integer value
-    ) {
-        return createUserRankingHistoryEntity(
-            historyId, userId, "RATING", value);
-    }
-
-    public static UserRankingHistoryEntity createRankingHistoryEntity(
-        Long historyId,
-        Long userId,
-        Integer value
-    ) {
-        return createUserRankingHistoryEntity(
-            historyId, userId, "RANKING", value
-        );
-    }
-
-    public static UserRankingHistoryEntity createSolvedCountHistoryEntity(
-        Long historyId,
-        Long userId,
-        Integer value
-    ) {
-        return createUserRankingHistoryEntity(
-            historyId, userId, "SOLVED_COUNT", value
-        );
     }
 } 

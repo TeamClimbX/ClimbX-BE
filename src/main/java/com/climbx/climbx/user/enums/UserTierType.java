@@ -1,4 +1,4 @@
-package com.climbx.climbx.problem.enums;
+package com.climbx.climbx.user.enums;
 
 import com.climbx.climbx.common.exception.InvalidRatingValueException;
 import java.util.stream.Stream;
@@ -9,30 +9,29 @@ import lombok.experimental.Accessors;
 @Getter
 @Accessors(fluent = true)
 @RequiredArgsConstructor
-public enum ProblemTierType {
+public enum UserTierType {
 
-    M(30, 30, 31),
-    D1(28, 29, 30),
-    D2(26, 27, 28),
-    D3(24, 25, 26),
-    P1(22, 23, 24),
-    P2(20, 21, 22),
-    P3(18, 19, 20),
-    G1(16, 17, 18),
-    G2(14, 15, 16),
-    G3(12, 13, 14),
-    S1(10, 11, 12),
-    S2(8, 9, 10),
-    S3(6, 7, 8),
-    B1(4, 5, 6),
-    B2(2, 3, 4),
-    B3(0, 1, 2);
+    M(2250, 3101),
+    D1(2100, 2250),
+    D2(1950, 2100),
+    D3(1800, 1950),
+    P1(1650, 1800),
+    P2(1500, 1650),
+    P3(1350, 1500),
+    G1(1200, 1350),
+    G2(1050, 1200),
+    G3(900, 1050),
+    S1(750, 900),
+    S2(600, 750),
+    S3(450, 600),
+    B1(300, 450),
+    B2(150, 300),
+    B3(0, 150);
 
     private final int inclusiveMinValue;
-    private final int value;
     private final int exclusiveMaxValue;
 
-    public static ProblemTierType fromValue(Integer value) {
+    public static UserTierType fromValue(Integer value) {
         return Stream.of(values())
             .filter(t -> t.inclusiveMinValue <= value && value < t.exclusiveMaxValue)
             .findFirst()

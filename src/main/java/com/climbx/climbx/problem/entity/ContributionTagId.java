@@ -21,13 +21,13 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 @Builder
 @EqualsAndHashCode
-public class ProblemTagId implements Serializable {
+public class ContributionTagId implements Serializable {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "problem_id")
-    ProblemEntity problemEntity;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "contribution_id", nullable = false)
+    private ContributionEntity contributionEntity;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tag")
+    @Column(name = "tag", length = 16, nullable = false)
     private ProblemTagType tag;
 }

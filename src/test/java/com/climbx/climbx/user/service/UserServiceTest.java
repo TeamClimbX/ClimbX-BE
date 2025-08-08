@@ -107,11 +107,12 @@ public class UserServiceTest {
             given(userStatRepository.findRankByRatingAndUpdatedAtAndUserId(
                 1400, userStat3.updatedAt(), 3L)
             ).willReturn(10);
-            given(ratingUtil.getTier(1200)).willReturn("BRONZE1");
-            given(ratingUtil.getTier(1300)).willReturn("SILVER1");
-            given(ratingUtil.getTier(1400)).willReturn("GOLD1");
 
-            // Mock category ratings calculation
+            // Mock category ratings calculation/java/com/climbx/climbx/user/service/UserServiceTest.java:111: error: cannot find symbol
+            //            given(ratingUtil.getTier(1200)).willReturn("BRONZE1");
+            //                            ^
+            //  symbol:   method getTier(int)
+            //  location: variable ratingUtil
             given(submissionRepository.getUserAcceptedSubmissionTagSummary(1L, StatusType.ACCEPTED))
                 .willReturn(List.of());
             given(submissionRepository.getUserAcceptedSubmissionTagSummary(1L, null))
@@ -166,7 +167,6 @@ public class UserServiceTest {
             given(userStatRepository.findRankByRatingAndUpdatedAtAndUserId(
                 UserFixture.DEFAULT_RATING, userStat2.updatedAt(), 2L)
             ).willReturn(UserFixture.DEFAULT_RANKING);
-            given(ratingUtil.getTier(UserFixture.DEFAULT_RATING)).willReturn("BRONZE1");
 
             // Mock category ratings calculation
             given(submissionRepository.getUserAcceptedSubmissionTagSummary(1L, StatusType.ACCEPTED))
@@ -208,7 +208,6 @@ public class UserServiceTest {
             given(userStatRepository.findRankByRatingAndUpdatedAtAndUserId(
                 UserFixture.DEFAULT_RATING, userStat1.updatedAt(), 1L)
             ).willReturn(UserFixture.DEFAULT_RANKING);
-            given(ratingUtil.getTier(UserFixture.DEFAULT_RATING)).willReturn("BRONZE1");
 
             // Mock category ratings calculation
             given(submissionRepository.getUserAcceptedSubmissionTagSummary(1L, StatusType.ACCEPTED))
@@ -253,8 +252,6 @@ public class UserServiceTest {
             given(userStatRepository.findRankByRatingAndUpdatedAtAndUserId(
                 1600, userStat2.updatedAt(), 2L)
             ).willReturn(5);
-            given(ratingUtil.getTier(1100)).willReturn("BRONZE1");
-            given(ratingUtil.getTier(1600)).willReturn("GOLD1");
 
             // Mock category ratings calculation
             given(submissionRepository.getUserAcceptedSubmissionTagSummary(1L, StatusType.ACCEPTED))
@@ -494,7 +491,6 @@ public class UserServiceTest {
             given(userStatRepository.findRankByRatingAndUpdatedAtAndUserId(
                 UserFixture.DEFAULT_RATING, userStatEntity.updatedAt(), userId)
             ).willReturn(ratingRank);
-            given(ratingUtil.getTier(UserFixture.DEFAULT_RATING)).willReturn("BRONZE1");
 
             // when
             UserProfileResponseDto result = userService.getUserById(userId);
@@ -559,7 +555,6 @@ public class UserServiceTest {
             given(userStatRepository.findRankByRatingAndUpdatedAtAndUserId(
                 UserFixture.DEFAULT_RATING, userStatEntity.updatedAt(), userId)
             ).willReturn(ratingRank);
-            given(ratingUtil.getTier(UserFixture.DEFAULT_RATING)).willReturn("BRONZE1");
 
             // when
             UserProfileResponseDto result = userService.getUserByNickname(nickname);
@@ -664,7 +659,6 @@ public class UserServiceTest {
             given(userStatRepository.findRankByRatingAndUpdatedAtAndUserId(
                 rating, userStatEntity.updatedAt(), userId)
             ).willReturn(ratingRank);
-            given(ratingUtil.getTier(rating)).willReturn("SILVER1");
 
             // when
             UserProfileResponseDto result = userService.modifyUserProfileInfo(userId,

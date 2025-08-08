@@ -1,5 +1,6 @@
 package com.climbx.climbx.problem.entity;
 
+import com.climbx.climbx.common.entity.BaseTimeEntity;
 import com.climbx.climbx.problem.enums.ProblemTagType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,15 +26,12 @@ import lombok.experimental.Accessors;
 @Getter
 @Accessors(fluent = true)
 @Builder
-public class ProblemTag {
+public class ProblemTagEntity extends BaseTimeEntity {
 
+    @Id
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "problem_id")
     ProblemEntity problemEntity;
-
-    @Id
-    @Column(name = "problem_id", insertable = false, updatable = false, nullable = false)
-    private Long problemId;
 
     @Id
     @Enumerated(EnumType.STRING)

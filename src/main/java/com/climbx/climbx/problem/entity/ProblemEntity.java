@@ -18,6 +18,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,7 +41,7 @@ public class ProblemEntity extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "gym_id", nullable = false)
-    private GymEntity gym;
+    private GymEntity gymEntity;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "gym_area_id", nullable = false)
@@ -54,14 +55,15 @@ public class ProblemEntity extends BaseTimeEntity {
     @Size(min = 1, max = 32)
     private String holdColor; // 홀드 색상, 예: "빨강", "파랑", "초록" 등
 
+    @Builder.Default
     @Column(name = "problem_rating") // Todo nullable = false
-    @Min(value = 1)
+    @Min(value = 0)
     @Max(value = 30)
-    private Integer problemRating; // 문제 난이도
+    private Integer rating = 0; // 문제 난이도
 
     @Enumerated(EnumType.STRING)
     @Column(name = "problem_tier", length = 16) // Todo nullable = false
-    private ProblemTierType problemTier;
+    private ProblemTierType tier;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "primary_tag", length = 16)
@@ -75,7 +77,18 @@ public class ProblemEntity extends BaseTimeEntity {
     @Size(max = 512)
     private String problemImageCdnUrl; // 문제 이미지 CDN URL
 
-    @Column(name = "active_status", length = 16, nullable = false)
     @Enumerated(EnumType.STRING)
+    @Column(name = "active_status", length = 16, nullable = false)
     private ActiveStatusType activeStatus; // 문제 상태 (예: 활성화, 비활성화 등)
+
+    public void updateRatingAndTierAndTags(
+        Integer newRating,
+        ProblemTierType newTier,
+        List<ProblemTagType> newTags
+    ) {
+        this.rating = newRating;
+        this.tier = newTier;
+        this.primaryTag = !newTags.isEmpty() ? newTags.getFirst() : null;
+        this.secondaryTag = newTags.size() > 1 ? newTags.get(1) : null;
+    }
 }

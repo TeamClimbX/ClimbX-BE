@@ -16,6 +16,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -68,35 +71,13 @@ class NonceServiceTest {
             then(usedNonces).should(never()).put(anyString(), any(Boolean.class));
         }
 
-        @Test
-        @DisplayName("null nonce로 검증 시 IllegalArgumentException을 던진다")
-        void shouldThrowIllegalArgumentExceptionWhenNonceIsNull() {
+        @ParameterizedTest
+        @NullSource
+        @ValueSource(strings = {"", "   "})
+        @DisplayName("null, 빈 문자열, 공백만 있는 nonce로 검증 시 IllegalArgumentException을 던진다")
+        void shouldThrowIllegalArgumentExceptionWhenNonceIsInvalid(String nonce) {
             // when & then
-            assertThatThrownBy(
-                () -> nonceService.validateAndUseNonce(null, OAuth2ProviderType.KAKAO))
-                .isInstanceOf(InvalidNonceException.class);
-
-            then(usedNonces).should(never()).getIfPresent(anyString());
-            then(usedNonces).should(never()).put(anyString(), any(Boolean.class));
-        }
-
-        @Test
-        @DisplayName("빈 문자열 nonce로 검증 시 IllegalArgumentException을 던진다")
-        void shouldThrowIllegalArgumentExceptionWhenNonceIsEmpty() {
-            // when & then
-            assertThatThrownBy(() -> nonceService.validateAndUseNonce("", OAuth2ProviderType.KAKAO))
-                .isInstanceOf(InvalidNonceException.class);
-
-            then(usedNonces).should(never()).getIfPresent(anyString());
-            then(usedNonces).should(never()).put(anyString(), any(Boolean.class));
-        }
-
-        @Test
-        @DisplayName("공백만 있는 nonce로 검증 시 IllegalArgumentException을 던진다")
-        void shouldThrowIllegalArgumentExceptionWhenNonceIsBlank() {
-            // when & then
-            assertThatThrownBy(
-                () -> nonceService.validateAndUseNonce("   ", OAuth2ProviderType.KAKAO))
+            assertThatThrownBy(() -> nonceService.validateAndUseNonce(nonce, OAuth2ProviderType.KAKAO))
                 .isInstanceOf(InvalidNonceException.class);
 
             then(usedNonces).should(never()).getIfPresent(anyString());

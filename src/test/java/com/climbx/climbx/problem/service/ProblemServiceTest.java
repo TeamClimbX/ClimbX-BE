@@ -123,7 +123,7 @@ public class ProblemServiceTest {
             Long gymAreaId = 1L;
             String localLevel = "V3";
             String holdColor = "빨강";
-            Integer problemRating = 1500;
+            Integer rating = 1500;
             UUID problemId = UUID.randomUUID();
 
             ProblemCreateRequestDto request = ProblemCreateRequestDto.builder()
@@ -150,11 +150,11 @@ public class ProblemServiceTest {
 
             ProblemEntity savedProblem = ProblemEntity.builder()
                 .problemId(problemId)
-                .gym(gymEntity)
+                .gymEntity(gymEntity)
                 .gymArea(gymAreaEntity)
                 .localLevel(localLevel)
                 .holdColor(holdColor)
-                .problemRating(problemRating)
+                .rating(rating)
                 .problemImageCdnUrl(expectedCdnUrl)
                 .activeStatus(ActiveStatusType.ACTIVE)
                 .build();
@@ -179,7 +179,7 @@ public class ProblemServiceTest {
             assertThat(result.gymAreaId()).isEqualTo(gymAreaId);
             assertThat(result.localLevel()).isEqualTo(localLevel);
             assertThat(result.holdColor()).isEqualTo(holdColor);
-            assertThat(result.problemRating()).isEqualTo(problemRating);
+            assertThat(result.problemRating()).isEqualTo(rating);
             assertThat(result.problemImageCdnUrl()).isEqualTo(expectedCdnUrl);
             assertThat(result.activeStatus()).isEqualTo(ActiveStatusType.ACTIVE);
         }
@@ -209,11 +209,11 @@ public class ProblemServiceTest {
 
             ProblemEntity savedProblem = ProblemEntity.builder()
                 .problemId(problemId)
-                .gym(gymEntity)
+                .gymEntity(gymEntity)
                 .gymArea(gymAreaEntity)
                 .localLevel(localLevel)
                 .holdColor(holdColor)
-                .problemRating(problemRating)
+                .rating(problemRating)
                 .problemImageCdnUrl(null)
                 .activeStatus(ActiveStatusType.ACTIVE)
                 .build();

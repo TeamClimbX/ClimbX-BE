@@ -1,7 +1,6 @@
 package com.climbx.climbx.submission.service;
 
 import com.climbx.climbx.common.enums.StatusType;
-import com.climbx.climbx.common.util.OptionalUtil;
 import com.climbx.climbx.problem.entity.ProblemEntity;
 import com.climbx.climbx.problem.exception.ProblemNotFoundException;
 import com.climbx.climbx.problem.repository.ProblemRepository;
@@ -83,25 +82,17 @@ public class SubmissionService {
     }
 
     @Transactional
-    public SubmissionResponseDto createSubmission(String nickname,
-        SubmissionCreateRequestDto request) {
-        UserAccountEntity user = userAccountRepository.findByNickname(nickname)
-            .orElseThrow(() -> new UserNotFoundException(nickname));
-
-        Long userId = user.userId();
-
+    public SubmissionResponseDto createSubmission(Long userId, SubmissionCreateRequestDto request) {
         VideoEntity video = videoRepository.findByVideoIdAndStatus(
             request.videoId(),
             StatusType.COMPLETED
         ).orElseThrow(() -> new VideoNotFoundException(request.videoId()));
 
-        OptionalUtil.tryOf(video::userId)
-            .filter(id -> !id.equals(userId))
-            .ifPresent(id -> {
-                log.warn("User {} attempted to submit video {} they do not own", userId,
-                    request.videoId());
-                throw new ForbiddenSubmissionException(userId, request.videoId());
-            });
+        if (!video.userId().equals(userId)) {
+            log.warn("User {} attempted to submit video {} they do not own", userId,
+                request.videoId());
+            throw new ForbiddenSubmissionException(userId, request.videoId());
+        }
 
         // 이미 제출된 영상인지 확인
         submissionRepository.findById(request.videoId())
@@ -120,6 +111,9 @@ public class SubmissionService {
 
         submissionRepository.save(submissionEntity);
 
+        UserAccountEntity user = userAccountRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+
         UserStatEntity userStat = user.userStatEntity();
         userStat.incrementSubmissionCount();
 
@@ -134,12 +128,7 @@ public class SubmissionService {
     }
 
     @Transactional
-    public SubmissionCancelResponseDto cancelSubmission(String nickname, UUID videoId) {
-        UserAccountEntity user = userAccountRepository.findByNickname(nickname)
-            .orElseThrow(() -> new UserNotFoundException(nickname));
-
-        Long userId = user.userId();
-
+    public SubmissionCancelResponseDto cancelSubmission(Long userId, UUID videoId) {
         SubmissionEntity submissionEntity = submissionRepository.findById(videoId)
             .orElseThrow(() -> new VideoNotFoundException(videoId));
 
@@ -161,13 +150,8 @@ public class SubmissionService {
     }
 
     @Transactional
-    public SubmissionAppealResponseDto appealSubmission(String nickname, UUID videoId,
+    public SubmissionAppealResponseDto appealSubmission(Long userId, UUID videoId,
         SubmissionAppealRequestDto request) {
-        UserAccountEntity user = userAccountRepository.findByNickname(nickname)
-            .orElseThrow(() -> new UserNotFoundException(nickname));
-
-        Long userId = user.userId();
-
         SubmissionEntity submissionEntity = submissionRepository.findById(videoId)
             .orElseGet(() -> {
                 log.warn("User {} attempted to appeal submission for non-existent video {}", userId,

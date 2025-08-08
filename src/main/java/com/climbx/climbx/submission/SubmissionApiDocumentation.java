@@ -229,14 +229,6 @@ public interface SubmissionApiDocumentation {
     })
     SubmissionResponseDto createSubmission(
         @Parameter(
-            name = "nickname",
-            description = "사용자 닉네임",
-            required = true,
-            example = "climbUser123"
-        )
-        String nickname,
-
-        @Parameter(
             name = "request",
             description = "제출물 생성 요청 데이터",
             required = true,
@@ -252,6 +244,7 @@ public interface SubmissionApiDocumentation {
                     """
             )
         )
+        Long userId,
         @Valid SubmissionCreateRequestDto request
     );
 
@@ -411,13 +404,7 @@ public interface SubmissionApiDocumentation {
         )
     })
     SubmissionCancelResponseDto cancelSubmission(
-        @Parameter(
-            name = "nickname",
-            description = "사용자 닉네임",
-            required = true,
-            example = "climbUser123"
-        )
-        String nickname,
+        Long userId,
 
         @Parameter(
             name = "videoId",
@@ -624,13 +611,7 @@ public interface SubmissionApiDocumentation {
         )
     })
     SubmissionAppealResponseDto appealSubmission(
-        @Parameter(
-            name = "nickname",
-            description = "사용자 닉네임",
-            required = true,
-            example = "climbUser123"
-        )
-        String nickname,
+        Long userId,
 
         @Parameter(
             name = "videoId",

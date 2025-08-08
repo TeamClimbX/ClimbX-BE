@@ -1,4 +1,4 @@
-package com.climbx.climbx.submission.dto;
+package com.climbx.climbx.problem.dto;
 
 import com.climbx.climbx.problem.enums.ProblemTagType;
 

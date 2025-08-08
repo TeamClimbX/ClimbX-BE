@@ -43,6 +43,7 @@ public enum ErrorCode {
     VIDEO_NOT_FOUND(HttpStatus.NOT_FOUND, "비디오를 찾을 수 없습니다."),
     PROBLEM_NOT_FOUND(HttpStatus.NOT_FOUND, "문제를 찾을 수 없습니다."),
     FORBIDDEN_SUBMISSION(HttpStatus.FORBIDDEN, "제출물에 대한 권한이 없습니다."),
+    FORBIDDEN_PROBLEM_VOTE(HttpStatus.FORBIDDEN, "해당 문제 투표에 대한 권한이 없습니다."),
     DUPLICATE_APPEAL(HttpStatus.CONFLICT, "이미 이의신청이 접수된 제출물입니다."),
     DUPLICATE_SUBMISSION(HttpStatus.CONFLICT, "이미 제출된 영상입니다."),
     DEFAULT_NICKNAME_RETRY_LIMIT_EXCEEDED(HttpStatus.INTERNAL_SERVER_ERROR,

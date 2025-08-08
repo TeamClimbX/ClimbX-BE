@@ -13,6 +13,7 @@ import com.climbx.climbx.user.dto.UserProfileInfoModifyRequestDto;
 import com.climbx.climbx.user.dto.UserProfileResponseDto;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
+import com.climbx.climbx.user.enums.UserTierType;
 import com.climbx.climbx.user.exception.DuplicateNicknameException;
 import com.climbx.climbx.user.exception.NicknameMismatchException;
 import com.climbx.climbx.user.exception.UserNotFoundException;
@@ -166,7 +167,7 @@ public class UserService {
         Long userId = userAccount.userId();
 
         UserStatEntity userStat = findUserStatByUserId(userId);
-        String tier = ratingUtil.getTier(userStat.rating());
+        UserTierType tier = UserTierType.fromValue(userStat.rating());
         Integer ratingRank = userStatRepository.findRankByRatingAndUpdatedAtAndUserId(
             userStat.rating(), userStat.updatedAt(), userId);
 

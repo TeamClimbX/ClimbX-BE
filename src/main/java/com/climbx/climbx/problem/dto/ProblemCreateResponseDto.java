@@ -23,13 +23,13 @@ public record ProblemCreateResponseDto(
     public static ProblemCreateResponseDto from(ProblemEntity problem) {
         return ProblemCreateResponseDto.builder()
             .problemId(problem.problemId())
-            .gymId(problem.gym().gymId())
-            .gymName(problem.gym().name())
+            .gymId(problem.gymEntity().gymId())
+            .gymName(problem.gymEntity().name())
             .gymAreaId(problem.gymArea().gymAreaId())
             .areaName(problem.gymArea().areaName())
             .localLevel(problem.localLevel())
             .holdColor(problem.holdColor())
-            .problemRating(problem.problemRating())
+            .problemRating(problem.rating())
             .problemImageCdnUrl(problem.problemImageCdnUrl())
             .activeStatus(problem.activeStatus())
             .build();

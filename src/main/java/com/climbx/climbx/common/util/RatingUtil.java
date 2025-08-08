@@ -1,10 +1,12 @@
 package com.climbx.climbx.common.util;
 
-import com.climbx.climbx.common.dto.TierDefinitionDto;
-import com.climbx.climbx.common.exception.InvalidRatingValueException;
+import com.climbx.climbx.problem.dto.TagRatingPairDto;
+import com.climbx.climbx.problem.dto.VoteTierDto;
 import com.climbx.climbx.problem.enums.ProblemTagType;
-import com.climbx.climbx.submission.dto.TagRatingPairDto;
+import com.climbx.climbx.problem.enums.ProblemTierType;
 import com.climbx.climbx.user.dto.TagRatingResponseDto;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -19,20 +21,6 @@ import org.springframework.stereotype.Component;
 public class RatingUtil {
 
     static final int CATEGORY_TYPE_LIMIT = 8;
-    private final List<TierDefinitionDto> tierList;
-
-    public TierDefinitionDto getTierDefinition(int rating) {
-        return tierList.stream()
-            .filter(tier -> tier.minRating() <= rating && rating <= tier.maxRating())
-            .findFirst()
-            .orElseThrow(() -> new InvalidRatingValueException(rating));
-    }
-
-    public String getTier(int rating) {
-        TierDefinitionDto tierDefinition = getTierDefinition(rating);
-        return tierDefinition.name() + (tierDefinition.level() != null ? tierDefinition.level()
-            .toString() : "");
-    }
 
     public int calculateUserRating(
         List<Integer> topProblemRatings,
@@ -42,7 +30,7 @@ public class RatingUtil {
     ) {
         int topProblemScore = topProblemRatings.stream()
             .mapToInt(Integer::intValue)
-            .map(rating -> getTierDefinition(rating).score())
+            .map(rating -> ProblemTierType.fromValue(rating).value())
             .sum();
 
         int submissionCountScore = 10 * Math.min(submissionCount, 50);
@@ -102,5 +90,38 @@ public class RatingUtil {
             }).sorted(Comparator.comparing(TagRatingResponseDto::rating).reversed())
             .toList()
             .subList(0, Math.min(CATEGORY_TYPE_LIMIT, allByTag.size()));
+    }
+
+    /**
+     * 문제의 난이도 티어를 계산합니다.
+     *
+     * @param voteTiers 투표 티어 목록(sorted by dateTime)
+     * @return 문제의 난이도 티어
+     */
+    public Integer calculateProblemTier(List<VoteTierDto> voteTiers) {
+        if (voteTiers.isEmpty()) {
+            // TODO: 암장의 난이도 분포에 따른 기본 티어 설정 로직 필요
+            return ProblemTierType.B3.value();
+        }
+
+        LocalDateTime lastVoteTime = voteTiers.getLast().dateTime();
+        int lastVoteIndex = voteTiers.size() - 1;
+
+        double weightedTierSum = 0.0;
+        double weightSum = 0.0;
+        for (int i = 0; i < voteTiers.size(); i++) {
+            VoteTierDto vote = voteTiers.get(i);
+
+            double indexDiffReliability = Math.pow(0.9, lastVoteIndex - i);
+            double dateDiffReliability = Math.pow(0.5, Duration.between(
+                vote.dateTime(), lastVoteTime).toDays());
+
+            double weight = Math.max(indexDiffReliability, dateDiffReliability);
+
+            weightedTierSum += vote.tier().value() * weight;
+            weightSum += weight;
+        }
+
+        return (int) Math.round(weightedTierSum / weightSum);
     }
 }
