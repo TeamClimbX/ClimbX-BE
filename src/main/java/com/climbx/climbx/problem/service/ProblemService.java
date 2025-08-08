@@ -14,6 +14,8 @@ import com.climbx.climbx.problem.dto.ProblemInfoResponseDto;
 import com.climbx.climbx.problem.entity.ProblemEntity;
 import com.climbx.climbx.problem.enums.ProblemTierType;
 import com.climbx.climbx.problem.exception.GymAreaNotFoundException;
+import com.climbx.climbx.problem.exception.ProblemAlreadyDeletedException;
+import com.climbx.climbx.problem.exception.ProblemNotFoundException;
 import com.climbx.climbx.problem.repository.ProblemRepository;
 import java.util.List;
 import java.util.UUID;
@@ -92,5 +94,21 @@ public class ProblemService {
             imageCdnUrl);
 
         return ProblemCreateResponseDto.from(savedProblem);
+    }
+
+    @Transactional
+    public void softDeleteProblem(UUID problemId) {
+        log.info("Soft deleting problem: problemId={}", problemId);
+
+        ProblemEntity problem = problemRepository.findById(problemId)
+            .orElseThrow(() -> new ProblemNotFoundException(problemId));
+
+        if (problem.deletedAt() != null) {
+            throw new ProblemAlreadyDeletedException(
+                ErrorCode.PROBLEM_ALREADY_DELETED, "Problem has already been soft deleted");
+        }
+        problem.softDelete();
+
+        log.info("Problem soft deleted successfully: problemId={}", problemId);
     }
 }

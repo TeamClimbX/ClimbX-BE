@@ -71,6 +71,10 @@ public enum ErrorCode {
     STATUS_MODIFY_TO_PENDING(HttpStatus.BAD_REQUEST, "제출물 상태를 PENDING으로 변경할 수 없습니다."),
 
     /**
+     * Problem errors
+     */
+    PROBLEM_ALREADY_DELETED(HttpStatus.BAD_REQUEST, "이미 삭제된 문제입니다."),
+    /**
      * Auth errors
      */
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다."),
@@ -95,8 +99,7 @@ public enum ErrorCode {
     S3_BUCKET_NAME_NOT_CONFIGURED(HttpStatus.INTERNAL_SERVER_ERROR, "S3 버킷 이름이 설정되지 않았습니다."),
     CLOUDFRONT_DOMAIN_NOT_CONFIGURED(HttpStatus.INTERNAL_SERVER_ERROR,
         "CloudFront 도메인이 설정되지 않았습니다."),
-    S3_FILE_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S3 파일 삭제에 실패했습니다."),
-    ;
+    S3_FILE_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S3 파일 삭제에 실패했습니다.");
 
     private final HttpStatus status;
     private final String message;
