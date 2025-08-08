@@ -30,7 +30,8 @@ public interface ProblemRepository extends JpaRepository<ProblemEntity, UUID> {
                 FROM ProblemEntity p 
                 JOIN  p.gymArea ga 
                 JOIN  p.gym g 
-                WHERE (:gymId IS NULL OR p.gym.gymId = :gymId) AND 
+                WHERE p.deletedAt IS NULL AND
+                (:gymId IS NULL OR p.gym.gymId = :gymId) AND 
                 (:gymAreaId IS NULL OR p.gymArea.gymAreaId = :gymAreaId) AND 
                 (:localLevel IS NULL OR p.localLevel = :localLevel) AND 
                 (:holdColor IS NULL OR p.holdColor = :holdColor) AND 

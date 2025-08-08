@@ -19,6 +19,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -269,5 +270,43 @@ public interface ProblemApiDocumentation {
         )
         @NotNull
         MultipartFile problemImage
+    );
+
+    @Operation(
+        summary = "문제 삭제",
+        description = "기존 클라이밍 문제를 삭제합니다."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "204",
+            description = "문제 삭제 성공"
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "문제를 찾을 수 없음",
+            content = @Content(
+                schema = @Schema(implementation = ApiResponseDto.class),
+                examples = @ExampleObject(
+                    name = "문제 없음",
+                    value = """
+                        {
+                          "httpStatus": 404,
+                          "statusMessage": "PROBLEM_NOT_FOUND",
+                          "timeStamp": "2024-01-01T10:00:00Z",
+                          "responseTimeMs": 123,
+                          "path": "/api/problems/123e4567-e89b-12d3-a456-426614174000",
+                          "data": null
+                        }
+                        """
+                )
+            )
+        )
+    })
+    void softDeleteProblem(
+        @Parameter(
+            description = "문제 ID",
+            required = true
+        )
+        UUID problemId
     );
 }
