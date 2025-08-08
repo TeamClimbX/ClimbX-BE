@@ -10,16 +10,18 @@ public record UserRankingResponseDto(
     String statusMessage,
     String profileImageCdnUrl, // null 허용
     Integer rating,
+    Long ranking,
     Integer currentStreak,
     Integer longestStreak,
     Integer solvedCount
 ) {
 
-    public static UserRankingResponseDto from(UserStatEntity user) {
+    public static UserRankingResponseDto from(UserStatEntity user, Long ranking) {
         return UserRankingResponseDto.builder()
             .nickname(user.userAccountEntity().nickname())
             .statusMessage(user.userAccountEntity().statusMessage())
             .profileImageCdnUrl(user.userAccountEntity().profileImageCdnUrl())
+            .ranking(ranking)
             .rating(user.rating())
             .currentStreak(user.currentStreak())
             .longestStreak(user.longestStreak())
