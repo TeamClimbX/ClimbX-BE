@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
 import com.climbx.climbx.common.enums.CriteriaType;
-import com.climbx.climbx.user.util.UserRatingUtil;
 import com.climbx.climbx.common.enums.RoleType;
 import com.climbx.climbx.user.dto.DailyHistoryResponseDto;
 import com.climbx.climbx.user.dto.RatingResponseDto;
@@ -14,8 +13,9 @@ import com.climbx.climbx.user.entity.UserRankingHistoryEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.enums.UserTierType;
 import com.climbx.climbx.user.repository.UserStatRepository;
+import com.climbx.climbx.user.util.UserRatingUtil;
 import java.time.LocalDate;
-import java.util.Collections;   
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -152,7 +152,8 @@ public class UserFixture {
                     .totalRating(rating)
                     .topProblemRating(0)
                     .submissionRating(0)
-                    .solvedRating(UserRatingUtil.calculateSolvedScore(DEFAULT_SOLVED_PROBLEMS_COUNT))
+                    .solvedRating(
+                        UserRatingUtil.calculateSolvedScore(DEFAULT_SOLVED_PROBLEMS_COUNT))
                     .contributionRating(0)
                     .build()
             )
@@ -309,14 +310,14 @@ public class UserFixture {
 
     // 예외 테스트를 위한 간단한 헬퍼 메서드들
     public static void stubUserNotFound(
-        com.climbx.climbx.user.repository.UserAccountRepository userAccountRepository, 
+        com.climbx.climbx.user.repository.UserAccountRepository userAccountRepository,
         Long userId
     ) {
         given(userAccountRepository.findByUserId(userId)).willReturn(Optional.empty());
     }
 
     public static void stubUserNotFoundByNickname(
-        com.climbx.climbx.user.repository.UserAccountRepository userAccountRepository, 
+        com.climbx.climbx.user.repository.UserAccountRepository userAccountRepository,
         String nickname
     ) {
         given(userAccountRepository.findByNickname(nickname)).willReturn(Optional.empty());
