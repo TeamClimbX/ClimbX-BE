@@ -29,7 +29,7 @@ import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "user_accounts")
-@SQLRestriction("deleted_at IS NULL")
+@SQLRestriction("deleted_at IS NULL AND role = 'USER'")
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 @AllArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 @Getter

@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 public class UserRatingUtil {
 
     static final int CATEGORY_TYPE_LIMIT = 8;
-    
+
     public static int calculateSubmissionScore(int submissionCount) {
         return 10 * Math.min(submissionCount, 50);
     }
@@ -88,8 +88,10 @@ public class UserRatingUtil {
                 Collectors.mapping(TagRatingPairDto::rating, Collectors.toList())
             ));
 
-        record TagRatingWithPriority(TagRatingResponseDto dto, int priority) {}
-        
+        record TagRatingWithPriority(TagRatingResponseDto dto, int priority) {
+
+        }
+
         List<TagRatingResponseDto> allCategoryRatings = Arrays.stream(ProblemTagType.values())
             .map(tag -> {
                 List<Integer> solvedRatings = solvedByTag.getOrDefault(tag, List.of());
@@ -116,7 +118,8 @@ public class UserRatingUtil {
                 .thenComparing(t -> t.priority()))
             .map(TagRatingWithPriority::dto)
             .toList();
-        
-        return allCategoryRatings.subList(0, Math.min(CATEGORY_TYPE_LIMIT, allCategoryRatings.size()));
+
+        return allCategoryRatings.subList(0,
+            Math.min(CATEGORY_TYPE_LIMIT, allCategoryRatings.size()));
     }
 }

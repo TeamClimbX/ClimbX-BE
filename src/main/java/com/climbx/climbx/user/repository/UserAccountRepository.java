@@ -20,9 +20,8 @@ public interface UserAccountRepository extends JpaRepository<UserAccountEntity, 
      */
     Optional<UserAccountEntity> findByUserId(Long userId);
 
-    // 특정 역할의 사용자들 조회 (@SQLRestriction 자동 적용)
-    List<UserAccountEntity> findByRole(RoleType role);
-
-    // 특정 역할이면서 닉네임에 특정 문자열을 포함하는 사용자들 조회 (@SQLRestriction 자동 적용)
-    List<UserAccountEntity> findByRoleAndNicknameContaining(RoleType role, String nickname);
+    /*
+     * 닉네임에 특정 문자열을 포함하는 사용자들 조회 (@SQLRestriction 자동 적용 - USER role만)
+     */
+    List<UserAccountEntity> findByNicknameContaining(String nickname);
 }

@@ -94,7 +94,8 @@ VALUES ('USER', 'charlie', 'Climbing high!', '/images/charlie.png', CURRENT_DATE
        ('USER', 'kyle', 'King of the slab.', NULL, CURRENT_DATE, CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP);
 
-INSERT INTO user_stats (user_id, rating, top_problem_rating, current_streak, longest_streak, solved_count,
+INSERT INTO user_stats (user_id, rating, top_problem_rating, current_streak, longest_streak,
+                        solved_count,
                         submission_count, contribution_count,
                         rival_count, created_at, updated_at)
 VALUES (4, 2800, 0, 25, 30, 250, 8, 2, 10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
