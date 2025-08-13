@@ -5,6 +5,7 @@ import com.climbx.climbx.problem.dto.ProblemInfoResponseDto;
 import com.climbx.climbx.problem.dto.TagRatingPairDto;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.user.dto.DailyHistoryResponseDto;
+import com.climbx.climbx.user.dto.UserTagRatingDto;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -172,7 +173,9 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
 
     // 배치 조회: 여러 사용자의 Primary 태그 요약
     @Query("""
-          SELECT v.userId as userId, p.primaryTag as tag, p.rating as rating
+          SELECT new com.climbx.climbx.user.dto.UserTagRatingDto(
+                v.userId, p.primaryTag, p.rating
+            )
           FROM SubmissionEntity s
           JOIN s.videoEntity v
           JOIN s.problemEntity p
@@ -180,12 +183,14 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
             AND (:accepted IS NULL OR s.status = :accepted)
             AND (p.primaryTag IS NOT NULL)
         """)
-    List<UserTagRatingProjection> summarizeByPrimaryBatch(@Param("userIds") List<Long> userIds,
+    List<UserTagRatingDto> summarizeByPrimaryBatch(@Param("userIds") List<Long> userIds,
         @Param("accepted") StatusType accepted);
 
     // 배치 조회: 여러 사용자의 Secondary 태그 요약
     @Query("""
-          SELECT v.userId as userId, p.secondaryTag as tag, p.rating as rating
+          SELECT new com.climbx.climbx.user.dto.UserTagRatingDto(
+                v.userId, p.secondaryTag, p.rating
+            )
           FROM SubmissionEntity s
           JOIN s.videoEntity v
           JOIN s.problemEntity p
@@ -193,14 +198,8 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
             AND (:accepted IS NULL OR s.status = :accepted)
             AND (p.secondaryTag IS NOT NULL)
         """)
-    List<UserTagRatingProjection> summarizeBySecondaryBatch(@Param("userIds") List<Long> userIds,
+    List<UserTagRatingDto> summarizeBySecondaryBatch(@Param("userIds") List<Long> userIds,
         @Param("accepted") StatusType accepted);
-    
-    interface UserTagRatingProjection {
-        Long getUserId();
-        String getTag();
-        Integer getRating();
-    }
 
     // ProblemEntity를 fetch join
     @EntityGraph(attributePaths = "problemEntity")

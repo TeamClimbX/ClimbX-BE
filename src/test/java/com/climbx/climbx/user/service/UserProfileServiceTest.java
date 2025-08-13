@@ -88,9 +88,7 @@ class UserProfileServiceTest {
             );
 
             given(userLookupService.findAllUsers()).willReturn(users);
-            given(userDataAggregationService.buildProfile(any())).willReturn(
-                expectedProfiles.get(0), expectedProfiles.get(1)
-            );
+            given(userDataAggregationService.buildProfilesBatch(users)).willReturn(expectedProfiles);
 
             // when
             List<UserProfileResponseDto> result = userProfileService.getUsers(null);
@@ -115,7 +113,7 @@ class UserProfileServiceTest {
             UserProfileResponseDto expectedProfile = createMockUserProfileResponseDto("alice");
 
             given(userLookupService.findUsersByNicknameContaining(searchTerm)).willReturn(users);
-            given(userDataAggregationService.buildProfile(any())).willReturn(expectedProfile);
+            given(userDataAggregationService.buildProfilesBatch(users)).willReturn(List.of(expectedProfile));
 
             // when
             List<UserProfileResponseDto> result = userProfileService.getUsers(searchTerm);
@@ -136,7 +134,7 @@ class UserProfileServiceTest {
             UserProfileResponseDto expectedProfile = createMockUserProfileResponseDto("alice");
 
             given(userLookupService.findAllUsers()).willReturn(users);
-            given(userDataAggregationService.buildProfile(any())).willReturn(expectedProfile);
+            given(userDataAggregationService.buildProfilesBatch(users)).willReturn(List.of(expectedProfile));
 
             // when
             List<UserProfileResponseDto> result = userProfileService.getUsers("   ");

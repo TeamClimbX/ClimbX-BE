@@ -11,15 +11,15 @@ import com.climbx.climbx.common.enums.RoleType;
 import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.problem.dto.TagRatingPairDto;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
-import com.climbx.climbx.submission.repository.SubmissionRepository.UserTagRatingProjection;
 import com.climbx.climbx.user.dto.TagRatingResponseDto;
 import com.climbx.climbx.user.dto.UserProfileResponseDto;
+import com.climbx.climbx.user.dto.UserRankingDto;
+import com.climbx.climbx.user.dto.UserTagRatingDto;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.enums.UserTierType;
 import com.climbx.climbx.user.exception.UserStatNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
-import com.climbx.climbx.user.repository.UserStatRepository.UserRankingProjection;
 import com.climbx.climbx.user.util.UserRatingUtil;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,7 +31,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 @ExtendWith(MockitoExtension.class)
 class UserDataAggregationServiceTest {
 
@@ -58,34 +57,31 @@ class UserDataAggregationServiceTest {
     }
 
     private UserStatEntity createMockUserStatEntity(Long userId, Integer rating, Integer topProblemRating) {
+        return createMockUserStatEntity(userId, rating, topProblemRating, false);
+    }
+
+    private UserStatEntity createMockUserStatEntity(Long userId, Integer rating, Integer topProblemRating, boolean includeUpdatedAt) {
         UserStatEntity userStat = mock(UserStatEntity.class);
-        given(userStat.userId()).willReturn(userId);
+        
+        // buildProfile 메서드에서 사용되는 필드들만 설정
         given(userStat.rating()).willReturn(rating);
         given(userStat.topProblemRating()).willReturn(topProblemRating);
-        given(userStat.currentStreak()).willReturn(5);
-        given(userStat.longestStreak()).willReturn(10);
         given(userStat.solvedCount()).willReturn(50);
         given(userStat.submissionCount()).willReturn(75);
         given(userStat.contributionCount()).willReturn(3);
+        
+        // UserProfileResponseDto.from에서 사용되는 추가 필드들
+        given(userStat.currentStreak()).willReturn(5);
+        given(userStat.longestStreak()).willReturn(10);
         given(userStat.rivalCount()).willReturn(2);
-        given(userStat.updatedAt()).willReturn(LocalDateTime.now());
+        
+        if (includeUpdatedAt) {
+            given(userStat.updatedAt()).willReturn(LocalDateTime.now());
+        }
+        
         return userStat;
     }
 
-    private UserRankingProjection createMockRankingProjection(Long userId, Integer ranking) {
-        UserRankingProjection projection = mock(UserRankingProjection.class);
-        given(projection.getUserId()).willReturn(userId);
-        given(projection.getRanking()).willReturn(ranking);
-        return projection;
-    }
-
-    private UserTagRatingProjection createMockTagRatingProjection(Long userId, String tag, Integer rating) {
-        UserTagRatingProjection projection = mock(UserTagRatingProjection.class);
-        given(projection.getUserId()).willReturn(userId);
-        given(projection.getTag()).willReturn(tag);
-        given(projection.getRating()).willReturn(rating);
-        return projection;
-    }
 
     @Nested
     @DisplayName("프로필 빌드")
@@ -98,7 +94,7 @@ class UserDataAggregationServiceTest {
             Long userId = 1L;
             String nickname = "alice";
             UserAccountEntity user = createMockUserAccountEntity(userId, nickname);
-            UserStatEntity userStat = createMockUserStatEntity(userId, 1500, 800);
+            UserStatEntity userStat = createMockUserStatEntity(userId, 1500, 800, true);
 
             List<TagRatingPairDto> acceptedTags = List.of();
             List<TagRatingPairDto> allTags = List.of();
@@ -161,7 +157,7 @@ class UserDataAggregationServiceTest {
             Long userId = 1L;
             String nickname = "proClimber";
             UserAccountEntity user = createMockUserAccountEntity(userId, nickname);
-            UserStatEntity userStat = createMockUserStatEntity(userId, 2500, 1500);
+            UserStatEntity userStat = createMockUserStatEntity(userId, 2500, 1500, true);
 
             given(userStatRepository.findByUserId(userId)).willReturn(Optional.of(userStat));
             given(userStatRepository.findRankByRatingAndUpdatedAtAndUserId(eq(2500),
@@ -193,7 +189,7 @@ class UserDataAggregationServiceTest {
             Long userId = 1L;
             String nickname = "versatileClimber";
             UserAccountEntity user = createMockUserAccountEntity(userId, nickname);
-            UserStatEntity userStat = createMockUserStatEntity(userId, 1800, 1000);
+            UserStatEntity userStat = createMockUserStatEntity(userId, 1800, 1000, true);
 
             List<TagRatingResponseDto> categoryRatings = List.of(
                 TagRatingResponseDto.builder()
@@ -244,27 +240,29 @@ class UserDataAggregationServiceTest {
             );
             List<Long> userIds = List.of(1L, 2L);
 
-            List<UserStatEntity> userStats = List.of(
-                createMockUserStatEntity(1L, 1500, 800),
-                createMockUserStatEntity(2L, 1600, 900)
+            UserStatEntity userStat1 = createMockUserStatEntity(1L, 1500, 800);
+            given(userStat1.userId()).willReturn(1L);
+            UserStatEntity userStat2 = createMockUserStatEntity(2L, 1600, 900);
+            given(userStat2.userId()).willReturn(2L);
+            
+            List<UserStatEntity> userStats = List.of(userStat1, userStat2);
+
+            List<UserRankingDto> rankingData = List.of(
+                UserRankingDto.builder().userId(1L).ranking(42).build(),
+                UserRankingDto.builder().userId(2L).ranking(35).build()
             );
 
-            List<UserRankingProjection> rankingData = List.of(
-                createMockRankingProjection(1L, 42),
-                createMockRankingProjection(2L, 35)
+            List<UserTagRatingDto> acceptedPrimaryTags = List.of(
+                UserTagRatingDto.builder().userId(1L).tag("BALANCE").rating(1200).build(),
+                UserTagRatingDto.builder().userId(2L).tag("CRIMP_HOLD").rating(1300).build()
             );
 
-            List<UserTagRatingProjection> acceptedPrimaryTags = List.of(
-                createMockTagRatingProjection(1L, "BALANCE", 1200),
-                createMockTagRatingProjection(2L, "CRIMP_HOLD", 1300)
+            List<UserTagRatingDto> acceptedSecondaryTags = List.of();
+            List<UserTagRatingDto> allPrimaryTags = List.of(
+                UserTagRatingDto.builder().userId(1L).tag("BALANCE").rating(1200).build(),
+                UserTagRatingDto.builder().userId(2L).tag("CRIMP_HOLD").rating(1300).build()
             );
-
-            List<UserTagRatingProjection> acceptedSecondaryTags = List.of();
-            List<UserTagRatingProjection> allPrimaryTags = List.of(
-                createMockTagRatingProjection(1L, "BALANCE", 1200),
-                createMockTagRatingProjection(2L, "CRIMP_HOLD", 1300)
-            );
-            List<UserTagRatingProjection> allSecondaryTags = List.of();
+            List<UserTagRatingDto> allSecondaryTags = List.of();
 
             List<TagRatingResponseDto> categoryRatings = List.of(
                 TagRatingResponseDto.builder().category("balance").rating(1200).build()

@@ -1,5 +1,6 @@
 package com.climbx.climbx.user.repository;
 
+import com.climbx.climbx.user.dto.UserRankingDto;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -42,22 +43,19 @@ public interface UserStatRepository extends JpaRepository<UserStatEntity, Long> 
      * 배치 조회: 여러 사용자의 랭킹 정보 조회 (rating 기준)
      */
     @Query("""
-        SELECT us1.userId as userId,
-               CAST((SELECT COUNT(us2) + 1
+        SELECT new com.climbx.climbx.user.dto.UserRankingDto(
+            us1.userId,
+            CAST((SELECT COUNT(us2) + 1
                 FROM UserStatEntity us2
                 WHERE us2.rating > us1.rating
                    OR (us2.rating = us1.rating AND us2.updatedAt < us1.updatedAt)
                    OR (us2.rating = us1.rating AND us2.updatedAt = us1.updatedAt AND us2.userId < us1.userId)
-               ) as int) as ranking
+               ) as int)
+        )
         FROM UserStatEntity us1
         WHERE us1.userId IN :userIds
         """)
-    List<UserRankingProjection> findRanksByUserIds(@Param("userIds") List<Long> userIds);
-    
-    interface UserRankingProjection {
-        Long getUserId();
-        Integer getRanking();
-    }
+    List<UserRankingDto> findRanksByUserIds(@Param("userIds") List<Long> userIds);
 
     /**
      * 특정 사용자의 UserStat을 soft delete 처리합니다.
