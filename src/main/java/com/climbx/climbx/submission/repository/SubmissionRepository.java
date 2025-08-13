@@ -170,6 +170,38 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
             .toList();
     }
 
+    // 배치 조회: 여러 사용자의 Primary 태그 요약
+    @Query("""
+          SELECT v.userId as userId, p.primaryTag as tag, p.rating as rating
+          FROM SubmissionEntity s
+          JOIN s.videoEntity v
+          JOIN s.problemEntity p
+          WHERE v.userId IN :userIds
+            AND (:accepted IS NULL OR s.status = :accepted)
+            AND (p.primaryTag IS NOT NULL)
+        """)
+    List<UserTagRatingProjection> summarizeByPrimaryBatch(@Param("userIds") List<Long> userIds,
+        @Param("accepted") StatusType accepted);
+
+    // 배치 조회: 여러 사용자의 Secondary 태그 요약
+    @Query("""
+          SELECT v.userId as userId, p.secondaryTag as tag, p.rating as rating
+          FROM SubmissionEntity s
+          JOIN s.videoEntity v
+          JOIN s.problemEntity p
+          WHERE v.userId IN :userIds
+            AND (:accepted IS NULL OR s.status = :accepted)
+            AND (p.secondaryTag IS NOT NULL)
+        """)
+    List<UserTagRatingProjection> summarizeBySecondaryBatch(@Param("userIds") List<Long> userIds,
+        @Param("accepted") StatusType accepted);
+    
+    interface UserTagRatingProjection {
+        Long getUserId();
+        String getTag();
+        Integer getRating();
+    }
+
     // ProblemEntity를 fetch join
     @EntityGraph(attributePaths = "problemEntity")
     Optional<SubmissionEntity> findByProblemIdAndVideoEntity_UserIdAndStatus(

@@ -34,9 +34,7 @@ public class UserProfileService {
             users = userLookupService.findUsersByNicknameContaining(search.trim());
         }
 
-        return users.stream()
-            .map(userDataAggregationService::buildProfile)
-            .toList();
+        return userDataAggregationService.buildProfilesBatch(users);
     }
 
     public UserProfileResponseDto getUserById(Long userId) {

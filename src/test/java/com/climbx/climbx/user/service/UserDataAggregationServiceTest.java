@@ -11,6 +11,7 @@ import com.climbx.climbx.common.enums.RoleType;
 import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.problem.dto.TagRatingPairDto;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
+import com.climbx.climbx.submission.repository.SubmissionRepository.UserTagRatingProjection;
 import com.climbx.climbx.user.dto.TagRatingResponseDto;
 import com.climbx.climbx.user.dto.UserProfileResponseDto;
 import com.climbx.climbx.user.entity.UserAccountEntity;
@@ -18,6 +19,7 @@ import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.enums.UserTierType;
 import com.climbx.climbx.user.exception.UserStatNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
+import com.climbx.climbx.user.repository.UserStatRepository.UserRankingProjection;
 import com.climbx.climbx.user.util.UserRatingUtil;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -55,8 +57,9 @@ class UserDataAggregationServiceTest {
             .build();
     }
 
-    private UserStatEntity createMockUserStatEntity(Integer rating, Integer topProblemRating) {
+    private UserStatEntity createMockUserStatEntity(Long userId, Integer rating, Integer topProblemRating) {
         UserStatEntity userStat = mock(UserStatEntity.class);
+        given(userStat.userId()).willReturn(userId);
         given(userStat.rating()).willReturn(rating);
         given(userStat.topProblemRating()).willReturn(topProblemRating);
         given(userStat.currentStreak()).willReturn(5);
@@ -67,6 +70,21 @@ class UserDataAggregationServiceTest {
         given(userStat.rivalCount()).willReturn(2);
         given(userStat.updatedAt()).willReturn(LocalDateTime.now());
         return userStat;
+    }
+
+    private UserRankingProjection createMockRankingProjection(Long userId, Integer ranking) {
+        UserRankingProjection projection = mock(UserRankingProjection.class);
+        given(projection.getUserId()).willReturn(userId);
+        given(projection.getRanking()).willReturn(ranking);
+        return projection;
+    }
+
+    private UserTagRatingProjection createMockTagRatingProjection(Long userId, String tag, Integer rating) {
+        UserTagRatingProjection projection = mock(UserTagRatingProjection.class);
+        given(projection.getUserId()).willReturn(userId);
+        given(projection.getTag()).willReturn(tag);
+        given(projection.getRating()).willReturn(rating);
+        return projection;
     }
 
     @Nested
@@ -80,7 +98,7 @@ class UserDataAggregationServiceTest {
             Long userId = 1L;
             String nickname = "alice";
             UserAccountEntity user = createMockUserAccountEntity(userId, nickname);
-            UserStatEntity userStat = createMockUserStatEntity(1500, 800);
+            UserStatEntity userStat = createMockUserStatEntity(userId, 1500, 800);
 
             List<TagRatingPairDto> acceptedTags = List.of();
             List<TagRatingPairDto> allTags = List.of();
@@ -143,7 +161,7 @@ class UserDataAggregationServiceTest {
             Long userId = 1L;
             String nickname = "proClimber";
             UserAccountEntity user = createMockUserAccountEntity(userId, nickname);
-            UserStatEntity userStat = createMockUserStatEntity(2500, 1500);
+            UserStatEntity userStat = createMockUserStatEntity(userId, 2500, 1500);
 
             given(userStatRepository.findByUserId(userId)).willReturn(Optional.of(userStat));
             given(userStatRepository.findRankByRatingAndUpdatedAtAndUserId(eq(2500),
@@ -175,7 +193,7 @@ class UserDataAggregationServiceTest {
             Long userId = 1L;
             String nickname = "versatileClimber";
             UserAccountEntity user = createMockUserAccountEntity(userId, nickname);
-            UserStatEntity userStat = createMockUserStatEntity(1800, 1000);
+            UserStatEntity userStat = createMockUserStatEntity(userId, 1800, 1000);
 
             List<TagRatingResponseDto> categoryRatings = List.of(
                 TagRatingResponseDto.builder()
@@ -209,6 +227,110 @@ class UserDataAggregationServiceTest {
             assertThat(result.categoryRatings().get(0).rating()).isEqualTo(1900);
             assertThat(result.categoryRatings().get(1).category()).isEqualTo("Sport");
             assertThat(result.categoryRatings().get(1).rating()).isEqualTo(1700);
+        }
+    }
+
+    @Nested
+    @DisplayName("배치 프로필 빌드 테스트")
+    class BuildProfilesBatchTest {
+
+        @Test
+        @DisplayName("여러 사용자 프로필을 배치로 성공적으로 빌드한다")
+        void buildProfilesBatch_Success() {
+            // given
+            List<UserAccountEntity> users = List.of(
+                createMockUserAccountEntity(1L, "user1"),
+                createMockUserAccountEntity(2L, "user2")
+            );
+            List<Long> userIds = List.of(1L, 2L);
+
+            List<UserStatEntity> userStats = List.of(
+                createMockUserStatEntity(1L, 1500, 800),
+                createMockUserStatEntity(2L, 1600, 900)
+            );
+
+            List<UserRankingProjection> rankingData = List.of(
+                createMockRankingProjection(1L, 42),
+                createMockRankingProjection(2L, 35)
+            );
+
+            List<UserTagRatingProjection> acceptedPrimaryTags = List.of(
+                createMockTagRatingProjection(1L, "BALANCE", 1200),
+                createMockTagRatingProjection(2L, "CRIMP_HOLD", 1300)
+            );
+
+            List<UserTagRatingProjection> acceptedSecondaryTags = List.of();
+            List<UserTagRatingProjection> allPrimaryTags = List.of(
+                createMockTagRatingProjection(1L, "BALANCE", 1200),
+                createMockTagRatingProjection(2L, "CRIMP_HOLD", 1300)
+            );
+            List<UserTagRatingProjection> allSecondaryTags = List.of();
+
+            List<TagRatingResponseDto> categoryRatings = List.of(
+                TagRatingResponseDto.builder().category("balance").rating(1200).build()
+            );
+
+            // Mock repository calls
+            given(userStatRepository.findByUserIdIn(userIds)).willReturn(userStats);
+            given(userStatRepository.findRanksByUserIds(userIds)).willReturn(rankingData);
+            given(submissionRepository.summarizeByPrimaryBatch(userIds, StatusType.ACCEPTED))
+                .willReturn(acceptedPrimaryTags);
+            given(submissionRepository.summarizeBySecondaryBatch(userIds, StatusType.ACCEPTED))
+                .willReturn(acceptedSecondaryTags);
+            given(submissionRepository.summarizeByPrimaryBatch(userIds, null))
+                .willReturn(allPrimaryTags);
+            given(submissionRepository.summarizeBySecondaryBatch(userIds, null))
+                .willReturn(allSecondaryTags);
+            given(userRatingUtil.calculateCategoryRating(any(), any()))
+                .willReturn(categoryRatings);
+
+            // when
+            List<UserProfileResponseDto> results = userDataAggregationService.buildProfilesBatch(users);
+
+            // then
+            assertThat(results).hasSize(2);
+            assertThat(results.get(0).nickname()).isEqualTo("user1");
+            assertThat(results.get(1).nickname()).isEqualTo("user2");
+            assertThat(results.get(0).ranking()).isEqualTo(42);
+            assertThat(results.get(1).ranking()).isEqualTo(35);
+        }
+
+        @Test
+        @DisplayName("빈 사용자 목록의 경우 빈 결과 반환")
+        void buildProfilesBatch_EmptyUsers() {
+            // given
+            List<UserAccountEntity> emptyUsers = List.of();
+
+            // when
+            List<UserProfileResponseDto> results = userDataAggregationService.buildProfilesBatch(emptyUsers);
+
+            // then
+            assertThat(results).isEmpty();
+        }
+
+        @Test
+        @DisplayName("사용자 통계가 없는 경우 예외 발생")
+        void buildProfilesBatch_UserStatNotFound() {
+            // given
+            List<UserAccountEntity> users = List.of(
+                createMockUserAccountEntity(1L, "user1")
+            );
+            List<Long> userIds = List.of(1L);
+
+            given(userStatRepository.findByUserIdIn(userIds)).willReturn(List.of());
+            given(userStatRepository.findRanksByUserIds(userIds)).willReturn(List.of());
+            given(submissionRepository.summarizeByPrimaryBatch(userIds, StatusType.ACCEPTED))
+                .willReturn(List.of());
+            given(submissionRepository.summarizeBySecondaryBatch(userIds, StatusType.ACCEPTED))
+                .willReturn(List.of());
+            given(submissionRepository.summarizeByPrimaryBatch(userIds, null))
+                .willReturn(List.of());
+            given(submissionRepository.summarizeBySecondaryBatch(userIds, null))
+                .willReturn(List.of());
+
+            // when & then
+            assertThatThrownBy(() -> userDataAggregationService.buildProfilesBatch(users))
+                .isInstanceOf(UserStatNotFoundException.class);
         }
     }
 }
