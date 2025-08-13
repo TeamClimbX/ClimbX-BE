@@ -113,7 +113,7 @@ public class S3Service {
         String fileExtension = extractFileExtension(
             profileImage.getOriginalFilename());
 
-        // S3 키 생성 (profile-images/userId/userId-yyyy-MM-dd-HH-mm-ss.extension)
+        // S3 키 생성 (profile-images/user-{userId}/yyyy-MM-dd-HH-mm-ss-{userId}.extension)
         String s3Key = FileUploadUtils.generateProfileImageKey(userId, fileExtension);
 
         try {

@@ -5,13 +5,11 @@ spring:
 
 aws:
   s3:
-    videos-source-bucket-name: ${AWS_S3_VIDEOS_SOURCE_BUCKET_NAME}
-    profile-image-bucket-name: ${AWS_S3_PROFILE_IMAGE_BUCKET_NAME}
-    problem-image-bucket-name: ${AWS_S3_PROBLEM_IMAGE_BUCKET_NAME}
-    climbing-gym-image-bucket-name: ${AWS_S3_CLIMBING_GYM_IMAGE_BUCKET_NAME}
-    presigned-url-expiration: ${AWS_S3_PRESIGNED_URL_EXPIRATION:180} # in seconds
+    videos-source-bucket-name: ${AWS_PROD_S3_VIDEOS_SOURCE_BUCKET_NAME}
+    images-bucket-name: ${AWS_PROD_S3_IMAGES_BUCKET_NAME}
+    presigned-url-expiration: ${AWS_PROD_S3_PRESIGNED_URL_EXPIRATION:180} # in seconds
     region: ${AWS_S3_REGION:ap-northeast-2}
     access-key: ${AWS_ACCESS_KEY_ID}
     secret-key: ${AWS_SECRET_ACCESS_KEY}
   cloudfront:
-    domain: ${AWS_CLOUDFRONT_DOMAIN:}
+    domain: ${AWS_PROD_CLOUDFRONT_DOMAIN:}
