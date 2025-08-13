@@ -4,9 +4,9 @@ import com.climbx.climbx.user.dto.UserProfileResponseDto;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
-import com.climbx.climbx.user.repository.UserAccountRepository;
 import com.climbx.climbx.user.repository.UserStatRepository;
-import com.climbx.climbx.user.service.UserService;
+import com.climbx.climbx.user.service.UserDataAggregationService;
+import com.climbx.climbx.user.service.UserLookupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,14 +18,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class AdminUserService {
 
-    private final UserAccountRepository userAccountRepository;
+    private final UserLookupService userLookupService;
     private final UserStatRepository userStatRepository;
-    private final UserService userService;
+    private final UserDataAggregationService userDataAggregationService;
 
     @Transactional
     public UserProfileResponseDto updateRating(String nickname, Integer rating) {
-        UserAccountEntity userAccount = userAccountRepository.findByNickname(nickname)
-            .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다: " + nickname));
+        UserAccountEntity userAccount = userLookupService.findUserByNickname(nickname);
 
         Long userId = userAccount.userId();
 
@@ -34,6 +33,6 @@ public class AdminUserService {
 
         userStat.setRating(rating);
 
-        return userService.buildProfile(userAccount);
+        return userDataAggregationService.buildProfile(userAccount);
     }
 }

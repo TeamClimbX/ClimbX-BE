@@ -5,6 +5,7 @@ import com.climbx.climbx.problem.dto.ProblemInfoResponseDto;
 import com.climbx.climbx.problem.dto.TagRatingPairDto;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.user.dto.DailyHistoryResponseDto;
+import com.climbx.climbx.user.dto.UserTagRatingDto;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -169,6 +170,36 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
         return Stream.concat(primaryTags.stream(), secondaryTags.stream())
             .toList();
     }
+
+    // 배치 조회: 여러 사용자의 Primary 태그 요약
+    @Query("""
+          SELECT new com.climbx.climbx.user.dto.UserTagRatingDto(
+                v.userId, p.primaryTag, p.rating
+            )
+          FROM SubmissionEntity s
+          JOIN s.videoEntity v
+          JOIN s.problemEntity p
+          WHERE v.userId IN :userIds
+            AND (:accepted IS NULL OR s.status = :accepted)
+            AND (p.primaryTag IS NOT NULL)
+        """)
+    List<UserTagRatingDto> summarizeByPrimaryBatch(@Param("userIds") List<Long> userIds,
+        @Param("accepted") StatusType accepted);
+
+    // 배치 조회: 여러 사용자의 Secondary 태그 요약
+    @Query("""
+          SELECT new com.climbx.climbx.user.dto.UserTagRatingDto(
+                v.userId, p.secondaryTag, p.rating
+            )
+          FROM SubmissionEntity s
+          JOIN s.videoEntity v
+          JOIN s.problemEntity p
+          WHERE v.userId IN :userIds
+            AND (:accepted IS NULL OR s.status = :accepted)
+            AND (p.secondaryTag IS NOT NULL)
+        """)
+    List<UserTagRatingDto> summarizeBySecondaryBatch(@Param("userIds") List<Long> userIds,
+        @Param("accepted") StatusType accepted);
 
     // ProblemEntity를 fetch join
     @EntityGraph(attributePaths = "problemEntity")
