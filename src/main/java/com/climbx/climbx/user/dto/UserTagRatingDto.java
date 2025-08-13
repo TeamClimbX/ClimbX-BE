@@ -1,12 +1,11 @@
 package com.climbx.climbx.user.dto;
 
-import lombok.Builder;
+import com.climbx.climbx.problem.enums.ProblemTagType;
 
-@Builder
 public record UserTagRatingDto(
 
     Long userId,
-    String tag,
+    ProblemTagType tag,
     Integer rating
 ) {
 

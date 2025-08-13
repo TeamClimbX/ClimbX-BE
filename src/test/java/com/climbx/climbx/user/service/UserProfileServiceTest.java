@@ -88,7 +88,8 @@ class UserProfileServiceTest {
             );
 
             given(userLookupService.findAllUsers()).willReturn(users);
-            given(userDataAggregationService.buildProfilesBatch(users)).willReturn(expectedProfiles);
+            given(userDataAggregationService.buildProfilesBatch(users)).willReturn(
+                expectedProfiles);
 
             // when
             List<UserProfileResponseDto> result = userProfileService.getUsers(null);
@@ -113,7 +114,8 @@ class UserProfileServiceTest {
             UserProfileResponseDto expectedProfile = createMockUserProfileResponseDto("alice");
 
             given(userLookupService.findUsersByNicknameContaining(searchTerm)).willReturn(users);
-            given(userDataAggregationService.buildProfilesBatch(users)).willReturn(List.of(expectedProfile));
+            given(userDataAggregationService.buildProfilesBatch(users)).willReturn(
+                List.of(expectedProfile));
 
             // when
             List<UserProfileResponseDto> result = userProfileService.getUsers(searchTerm);
@@ -134,7 +136,8 @@ class UserProfileServiceTest {
             UserProfileResponseDto expectedProfile = createMockUserProfileResponseDto("alice");
 
             given(userLookupService.findAllUsers()).willReturn(users);
-            given(userDataAggregationService.buildProfilesBatch(users)).willReturn(List.of(expectedProfile));
+            given(userDataAggregationService.buildProfilesBatch(users)).willReturn(
+                List.of(expectedProfile));
 
             // when
             List<UserProfileResponseDto> result = userProfileService.getUsers("   ");
@@ -222,7 +225,8 @@ class UserProfileServiceTest {
             UserProfileResponseDto expectedProfile = createMockUserProfileResponseDto(newNickname);
 
             given(userLookupService.findUserById(userId)).willReturn(user);
-            given(userAccountRepository.existsByNicknameIgnoringRole(newNickname)).willReturn(false);
+            given(userAccountRepository.existsByNicknameIgnoringRole(newNickname)).willReturn(
+                false);
             given(userDataAggregationService.buildProfile(user)).willReturn(expectedProfile);
 
             // when
@@ -268,7 +272,8 @@ class UserProfileServiceTest {
             );
 
             given(userLookupService.findUserById(userId)).willReturn(user);
-            given(userAccountRepository.existsByNicknameIgnoringRole(duplicateNickname)).willReturn(true);
+            given(userAccountRepository.existsByNicknameIgnoringRole(duplicateNickname)).willReturn(
+                true);
 
             // when & then
             assertThatThrownBy(() -> userProfileService.modifyUserProfileInfo(

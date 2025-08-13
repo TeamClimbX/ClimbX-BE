@@ -21,6 +21,7 @@ import com.climbx.climbx.user.enums.UserTierType;
 import com.climbx.climbx.user.exception.UserStatNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
 import com.climbx.climbx.user.util.UserRatingUtil;
+import com.climbx.climbx.problem.enums.ProblemTagType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 @ExtendWith(MockitoExtension.class)
 class UserDataAggregationServiceTest {
 
@@ -56,29 +58,31 @@ class UserDataAggregationServiceTest {
             .build();
     }
 
-    private UserStatEntity createMockUserStatEntity(Long userId, Integer rating, Integer topProblemRating) {
+    private UserStatEntity createMockUserStatEntity(Long userId, Integer rating,
+        Integer topProblemRating) {
         return createMockUserStatEntity(userId, rating, topProblemRating, false);
     }
 
-    private UserStatEntity createMockUserStatEntity(Long userId, Integer rating, Integer topProblemRating, boolean includeUpdatedAt) {
+    private UserStatEntity createMockUserStatEntity(Long userId, Integer rating,
+        Integer topProblemRating, boolean includeUpdatedAt) {
         UserStatEntity userStat = mock(UserStatEntity.class);
-        
+
         // buildProfile 메서드에서 사용되는 필드들만 설정
         given(userStat.rating()).willReturn(rating);
         given(userStat.topProblemRating()).willReturn(topProblemRating);
         given(userStat.solvedCount()).willReturn(50);
         given(userStat.submissionCount()).willReturn(75);
         given(userStat.contributionCount()).willReturn(3);
-        
+
         // UserProfileResponseDto.from에서 사용되는 추가 필드들
         given(userStat.currentStreak()).willReturn(5);
         given(userStat.longestStreak()).willReturn(10);
         given(userStat.rivalCount()).willReturn(2);
-        
+
         if (includeUpdatedAt) {
             given(userStat.updatedAt()).willReturn(LocalDateTime.now());
         }
-        
+
         return userStat;
     }
 
@@ -244,7 +248,7 @@ class UserDataAggregationServiceTest {
             given(userStat1.userId()).willReturn(1L);
             UserStatEntity userStat2 = createMockUserStatEntity(2L, 1600, 900);
             given(userStat2.userId()).willReturn(2L);
-            
+
             List<UserStatEntity> userStats = List.of(userStat1, userStat2);
 
             List<UserRankingDto> rankingData = List.of(
@@ -253,14 +257,14 @@ class UserDataAggregationServiceTest {
             );
 
             List<UserTagRatingDto> acceptedPrimaryTags = List.of(
-                UserTagRatingDto.builder().userId(1L).tag("BALANCE").rating(1200).build(),
-                UserTagRatingDto.builder().userId(2L).tag("CRIMP_HOLD").rating(1300).build()
+                new UserTagRatingDto(1L, ProblemTagType.BALANCE, 1200),
+                new UserTagRatingDto(2L, ProblemTagType.CRIMP_HOLD, 1300)
             );
 
             List<UserTagRatingDto> acceptedSecondaryTags = List.of();
             List<UserTagRatingDto> allPrimaryTags = List.of(
-                UserTagRatingDto.builder().userId(1L).tag("BALANCE").rating(1200).build(),
-                UserTagRatingDto.builder().userId(2L).tag("CRIMP_HOLD").rating(1300).build()
+                new UserTagRatingDto(1L, ProblemTagType.BALANCE, 1200),
+                new UserTagRatingDto(2L, ProblemTagType.CRIMP_HOLD, 1300)
             );
             List<UserTagRatingDto> allSecondaryTags = List.of();
 
@@ -283,7 +287,8 @@ class UserDataAggregationServiceTest {
                 .willReturn(categoryRatings);
 
             // when
-            List<UserProfileResponseDto> results = userDataAggregationService.buildProfilesBatch(users);
+            List<UserProfileResponseDto> results = userDataAggregationService.buildProfilesBatch(
+                users);
 
             // then
             assertThat(results).hasSize(2);
@@ -300,7 +305,8 @@ class UserDataAggregationServiceTest {
             List<UserAccountEntity> emptyUsers = List.of();
 
             // when
-            List<UserProfileResponseDto> results = userDataAggregationService.buildProfilesBatch(emptyUsers);
+            List<UserProfileResponseDto> results = userDataAggregationService.buildProfilesBatch(
+                emptyUsers);
 
             // then
             assertThat(results).isEmpty();

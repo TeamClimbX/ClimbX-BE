@@ -1,9 +1,7 @@
 package com.climbx.climbx.user.service;
 
 import com.climbx.climbx.common.enums.StatusType;
-import com.climbx.climbx.common.util.OptionalUtil;
 import com.climbx.climbx.problem.dto.TagRatingPairDto;
-import com.climbx.climbx.problem.enums.ProblemTagType;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
 import com.climbx.climbx.user.dto.RatingResponseDto;
 import com.climbx.climbx.user.dto.TagRatingResponseDto;
@@ -98,7 +96,8 @@ public class UserDataAggregationService {
             ));
 
         // 배치 조회: 태그 요약 데이터
-        Map<Long, List<TagRatingPairDto>> acceptedTagsMap = buildTagSummaryMap(userIds, StatusType.ACCEPTED);
+        Map<Long, List<TagRatingPairDto>> acceptedTagsMap = buildTagSummaryMap(userIds,
+            StatusType.ACCEPTED);
         Map<Long, List<TagRatingPairDto>> allTagsMap = buildTagSummaryMap(userIds, null);
 
         // 프로필 조립
@@ -106,7 +105,7 @@ public class UserDataAggregationService {
             .map(userAccount -> {
                 Long userId = userAccount.userId();
                 UserStatEntity userStat = userStatMap.get(userId);
-                
+
                 if (userStat == null) {
                     throw new UserStatNotFoundException(userId);
                 }
@@ -133,26 +132,24 @@ public class UserDataAggregationService {
             .toList();
     }
 
-    private Map<Long, List<TagRatingPairDto>> buildTagSummaryMap(List<Long> userIds, StatusType status) {
-        List<UserTagRatingDto> primaryTags = submissionRepository.summarizeByPrimaryBatch(userIds, status);
-        List<UserTagRatingDto> secondaryTags = submissionRepository.summarizeBySecondaryBatch(userIds, status);
+    private Map<Long, List<TagRatingPairDto>> buildTagSummaryMap(List<Long> userIds,
+        StatusType status) {
+        List<UserTagRatingDto> primaryTags = submissionRepository.summarizeByPrimaryBatch(userIds,
+            status);
+        List<UserTagRatingDto> secondaryTags = submissionRepository.summarizeBySecondaryBatch(
+            userIds, status);
 
         Map<Long, List<TagRatingPairDto>> tagMap = Stream.concat(
-            primaryTags.stream(),
-            secondaryTags.stream()
-        )
-        .collect(Collectors.groupingBy(
-            UserTagRatingDto::userId,
-            Collectors.mapping(
-                dto -> OptionalUtil.tryOf(() -> 
-                    new TagRatingPairDto(ProblemTagType.from(dto.tag()), dto.rating())
-                ).orElseGet(() -> {
-                    log.warn("Invalid tag type: {}", dto.tag());
-                    return null;
-                }),
-                Collectors.filtering(tag -> tag != null, Collectors.toList())
+                primaryTags.stream(),
+                secondaryTags.stream()
             )
-        ));
+            .collect(Collectors.groupingBy(
+                UserTagRatingDto::userId,
+                Collectors.mapping(
+                    dto -> new TagRatingPairDto(dto.tag(), dto.rating()),
+                    Collectors.toList()
+                )
+            ));
 
         return tagMap;
     }
@@ -163,7 +160,8 @@ public class UserDataAggregationService {
             .topProblemRating(userStat.topProblemRating())
             .submissionRating(UserRatingUtil.calculateSubmissionScore(userStat.submissionCount()))
             .solvedRating(UserRatingUtil.calculateSolvedScore(userStat.solvedCount()))
-            .contributionRating(UserRatingUtil.calculateContributionScore(userStat.contributionCount()))
+            .contributionRating(
+                UserRatingUtil.calculateContributionScore(userStat.contributionCount()))
             .build();
     }
 
