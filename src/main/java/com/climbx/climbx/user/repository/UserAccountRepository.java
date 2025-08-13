@@ -5,6 +5,8 @@ import com.climbx.climbx.user.entity.UserAccountEntity;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface UserAccountRepository extends JpaRepository<UserAccountEntity, Long> {
 
@@ -14,6 +16,12 @@ public interface UserAccountRepository extends JpaRepository<UserAccountEntity, 
     Optional<UserAccountEntity> findByNickname(String nickname);
 
     boolean existsByNickname(String nickname);
+
+    /*
+     * 역할에 관계없이 닉네임 중복 체크 (시스템 전체 닉네임 유일성 보장)
+     */
+    @Query("SELECT COUNT(u) > 0 FROM UserAccountEntity u WHERE u.nickname = :nickname AND u.deletedAt IS NULL")
+    boolean existsByNicknameIgnoringRole(@Param("nickname") String nickname);
 
     /*
      * 사용자 id로 조회 (@SQLRestriction 자동 적용)

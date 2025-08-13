@@ -224,7 +224,7 @@ class UserProfileServiceTest {
             UserProfileResponseDto expectedProfile = createMockUserProfileResponseDto(newNickname);
 
             given(userLookupService.findUserById(userId)).willReturn(user);
-            given(userAccountRepository.existsByNickname(newNickname)).willReturn(false);
+            given(userAccountRepository.existsByNicknameIgnoringRole(newNickname)).willReturn(false);
             given(userDataAggregationService.buildProfile(user)).willReturn(expectedProfile);
 
             // when
@@ -234,7 +234,7 @@ class UserProfileServiceTest {
 
             // then
             assertThat(result.nickname()).isEqualTo(newNickname);
-            then(userAccountRepository).should().existsByNickname(newNickname);
+            then(userAccountRepository).should().existsByNicknameIgnoringRole(newNickname);
         }
 
         @Test
@@ -270,7 +270,7 @@ class UserProfileServiceTest {
             );
 
             given(userLookupService.findUserById(userId)).willReturn(user);
-            given(userAccountRepository.existsByNickname(duplicateNickname)).willReturn(true);
+            given(userAccountRepository.existsByNicknameIgnoringRole(duplicateNickname)).willReturn(true);
 
             // when & then
             assertThatThrownBy(() -> userProfileService.modifyUserProfileInfo(

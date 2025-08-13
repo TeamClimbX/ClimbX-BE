@@ -62,7 +62,7 @@ public class UserProfileService {
         }
 
         if (!currentNickname.equals(requestDto.newNickname())
-            && userAccountRepository.existsByNickname(requestDto.newNickname())) {
+            && userAccountRepository.existsByNicknameIgnoringRole(requestDto.newNickname())) {
             throw new DuplicateNicknameException(requestDto.newNickname());
         }
 
