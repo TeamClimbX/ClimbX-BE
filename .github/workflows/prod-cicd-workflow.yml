@@ -106,9 +106,9 @@ jobs:
 #            docker run -d -p ${{ vars.SPRING_CONTAINER_PORT }}:${{ vars.SPRING_CONTAINER_PORT }} \
 #              --name '${{ vars.SPRING_CONTAINER_NAME }}' \
 #              -e SPRING_PROFILES_ACTIVE='prod' \
-#              -e DB_URL='${{ secrets.PROD_DB_URL }}' \
-#              -e DB_USER='${{ secrets.PROD_DB_USER }}' \
-#              -e DB_PASSWORD='${{ secrets.PROD_DB_PASSWORD }}' \
+#              -e DB_URL='${{ secrets.DB_PROD_URL }}' \
+#              -e DB_USER='${{ secrets.DB_PROD_USER }}' \
+#              -e DB_PASSWORD='${{ secrets.DB_PROD_PASSWORD }}' \
 #              -e KAKAO_NATIVE_APP_KEY='${{ secrets.KAKAO_NATIVE_APP_KEY }}' \
 #              -e GOOGLE_ANDROID_APP_KEY='${{ secrets.GOOGLE_ANDROID_APP_KEY }}' \
 #              -e GOOGLE_IOS_APP_KEY='${{ secrets.GOOGLE_IOS_APP_KEY }}' \
