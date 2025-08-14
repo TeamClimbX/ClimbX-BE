@@ -1,6 +1,7 @@
 package com.climbx.climbx.admin.gym;
 
 import com.climbx.climbx.common.dto.ApiResponseDto;
+import com.climbx.climbx.gym.dto.GymAreaInfoResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -10,34 +11,39 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.multipart.MultipartHttpServletRequest;
+import org.springframework.web.multipart.MultipartFile;
 
 @Validated
 @Tag(name = "Admin Gym", description = "관리자 클라이밍장 관리 API")
 public interface AdminGymApiDocumentation {
 
     @Operation(
-        summary = "클라이밍장 2D 맵 이미지 업로드",
-        description = "관리자가 클라이밍장의 2D 맵 이미지를 업로드합니다. 기본 이미지 1개와 오버레이 이미지 여러 개를 S3에 업로드하고, 데이터베이스에 CDN URL을 JSON 형태로 저장합니다."
+        summary = "클라이밍장 구역 등록",
+        description = "관리자가 특정 클라이밍장에 새로운 구역(벽)을 등록합니다."
     )
     @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
         @ApiResponse(
-            responseCode = "200",
-            description = "2D 맵 이미지 업로드 완료",
+            responseCode = "201",
+            description = "구역 등록 완료",
             content = @Content(
                 schema = @Schema(implementation = ApiResponseDto.class),
                 examples = @ExampleObject(
-                    name = "업로드 성공",
+                    name = "구역 등록 성공",
                     value = """
                         {
-                          "httpStatus": 200,
+                          "httpStatus": 201,
                           "statusMessage": "SUCCESS",
                           "timeStamp": "2024-01-01T10:00:00Z",
-                          "responseTimeMs": 2340,
-                          "path": "/api/admin/gyms/upload/2d-map",
-                          "data": null
+                          "responseTimeMs": 234,
+                          "path": "/api/admin/gyms/1/areas",
+                          "data": {
+                            "areaId": 1,
+                            "areaName": "볼더링 A구역",
+                            "areaImageCdnUrl": null
+                          }
                         }
                         """
                 )
@@ -48,34 +54,19 @@ public interface AdminGymApiDocumentation {
             description = "잘못된 요청 데이터",
             content = @Content(
                 schema = @Schema(implementation = ApiResponseDto.class),
-                examples = {
-                    @ExampleObject(
-                        name = "필수 파라미터 누락",
-                        value = """
-                            {
-                              "httpStatus": 400,
-                              "statusMessage": "필수 파라미터가 누락되었습니다.",
-                              "timeStamp": "2024-01-01T10:00:00Z",
-                              "responseTimeMs": 45,
-                              "path": "/api/admin/gyms/upload/2d-map",
-                              "data": null
-                            }
-                            """
-                    ),
-                    @ExampleObject(
-                        name = "지원하지 않는 파일 형식",
-                        value = """
-                            {
-                              "httpStatus": 400,
-                              "statusMessage": "지원하지 않는 파일 형식입니다.",
-                              "timeStamp": "2024-01-01T10:00:00Z",
-                              "responseTimeMs": 67,
-                              "path": "/api/admin/gyms/upload/2d-map",
-                              "data": null
-                            }
-                            """
-                    )
-                }
+                examples = @ExampleObject(
+                    name = "유효성 검증 실패",
+                    value = """
+                        {
+                          "httpStatus": 400,
+                          "statusMessage": "구역 이름은 필수입니다.",
+                          "timeStamp": "2024-01-01T10:00:00Z",
+                          "responseTimeMs": 45,
+                          "path": "/api/admin/gyms/1/areas",
+                          "data": null
+                        }
+                        """
+                )
             )
         ),
         @ApiResponse(
@@ -91,7 +82,7 @@ public interface AdminGymApiDocumentation {
                           "statusMessage": "인증이 필요합니다.",
                           "timeStamp": "2024-01-01T10:00:00Z",
                           "responseTimeMs": 23,
-                          "path": "/api/admin/gyms/upload/2d-map",
+                          "path": "/api/admin/gyms/1/areas",
                           "data": null
                         }
                         """
@@ -111,7 +102,7 @@ public interface AdminGymApiDocumentation {
                           "statusMessage": "관리자 권한이 필요합니다.",
                           "timeStamp": "2024-01-01T10:00:00Z",
                           "responseTimeMs": 34,
-                          "path": "/api/admin/gyms/upload/2d-map",
+                          "path": "/api/admin/gyms/1/areas",
                           "data": null
                         }
                         """
@@ -131,27 +122,7 @@ public interface AdminGymApiDocumentation {
                           "statusMessage": "해당 클라이밍장을 찾을 수 없습니다.",
                           "timeStamp": "2024-01-01T10:00:00Z",
                           "responseTimeMs": 89,
-                          "path": "/api/admin/gyms/upload/2d-map",
-                          "data": null
-                        }
-                        """
-                )
-            )
-        ),
-        @ApiResponse(
-            responseCode = "413",
-            description = "파일 크기 초과",
-            content = @Content(
-                schema = @Schema(implementation = ApiResponseDto.class),
-                examples = @ExampleObject(
-                    name = "파일 크기 초과",
-                    value = """
-                        {
-                          "httpStatus": 413,
-                          "statusMessage": "업로드 파일 크기가 허용된 한도를 초과했습니다.",
-                          "timeStamp": "2024-01-01T10:00:00Z",
-                          "responseTimeMs": 156,
-                          "path": "/api/admin/gyms/upload/2d-map",
+                          "path": "/api/admin/gyms/1/areas",
                           "data": null
                         }
                         """
@@ -163,51 +134,114 @@ public interface AdminGymApiDocumentation {
             description = "서버 내부 오류",
             content = @Content(
                 schema = @Schema(implementation = ApiResponseDto.class),
-                examples = {
-                    @ExampleObject(
-                        name = "S3 업로드 실패",
-                        value = """
-                            {
-                              "httpStatus": 500,
-                              "statusMessage": "S3 업로드 중 오류가 발생했습니다.",
-                              "timeStamp": "2024-01-01T10:00:00Z",
-                              "responseTimeMs": 1234,
-                              "path": "/api/admin/gyms/upload/2d-map",
-                              "data": null
-                            }
-                            """
-                    ),
-                    @ExampleObject(
-                        name = "서버 오류",
-                        value = """
-                            {
-                              "httpStatus": 500,
-                              "statusMessage": "서버 내부 오류가 발생했습니다.",
-                              "timeStamp": "2024-01-01T10:00:00Z",
-                              "responseTimeMs": 123,
-                              "path": "/api/admin/gyms/upload/2d-map",
-                              "data": null
-                            }
-                            """
-                    )
-                }
+                examples = @ExampleObject(
+                    name = "서버 오류",
+                    value = """
+                        {
+                          "httpStatus": 500,
+                          "statusMessage": "서버 내부 오류가 발생했습니다.",
+                          "timeStamp": "2024-01-01T10:00:00Z",
+                          "responseTimeMs": 123,
+                          "path": "/api/admin/gyms/1/areas",
+                          "data": null
+                        }
+                        """
+                )
             )
         )
     })
-    void uploadGym2dMap(
+    GymAreaInfoResponseDto createGymArea(
         @Parameter(
             name = "gymId",
-            description = "2D 맵을 업로드할 클라이밍장의 ID",
+            description = "구역을 등록할 클라이밍장의 ID",
             required = true,
             example = "1"
         )
         Long gymId,
 
         @Parameter(
-            name = "",
-            description = "클라이밍장의 오버레이 2D 맵 이미지 파일들 (벽이름.png 형태로 업로드, PNG, JPG, JPEG 지원)",
+            name = "areaName",
+            description = "구역 이름",
             required = true
         )
-        MultipartHttpServletRequest request
+        @Valid
+        String areaName,
+
+        @Parameter(
+            name = "areaImage",
+            description = "구역 이미지 파일 (PNG, JPG, JPEG 지원, 선택사항)",
+            required = false
+        )
+        MultipartFile areaImage
+    );
+
+    @Operation(
+        summary = "클라이밍장 2D 맵 이미지 업데이트",
+        description = "관리자가 클라이밍장의 2D 맵 이미지를 업데이트합니다."
+    )
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "2D 맵 이미지 업데이트 완료"
+        ),
+        @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+        @ApiResponse(responseCode = "403", description = "권한 없음"),
+        @ApiResponse(responseCode = "404", description = "클라이밍장을 찾을 수 없음")
+    })
+    void updateGymMap2dImage(
+        @Parameter(
+            name = "gymId",
+            description = "2D 맵을 업데이트할 클라이밍장의 ID",
+            required = true,
+            example = "1"
+        )
+        Long gymId,
+
+        @Parameter(
+            name = "map2dImage",
+            description = "클라이밍장의 2D 맵 이미지 파일 (PNG, JPG, JPEG 지원)",
+            required = true
+        )
+        MultipartFile map2dImage
+    );
+
+    @Operation(
+        summary = "클라이밍장 구역 이미지 업데이트",
+        description = "관리자가 특정 클라이밍장 구역의 이미지를 업데이트합니다."
+    )
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "구역 이미지 업데이트 완료"
+        ),
+        @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+        @ApiResponse(responseCode = "403", description = "권한 없음"),
+        @ApiResponse(responseCode = "404", description = "구역을 찾을 수 없음")
+    })
+    void updateGymAreaImage(
+        @Parameter(
+            name = "gymId",
+            description = "클라이밍장의 ID",
+            required = true,
+            example = "1"
+        )
+        Long gymId,
+
+        @Parameter(
+            name = "areaId",
+            description = "업데이트할 구역의 ID",
+            required = true,
+            example = "1"
+        )
+        Long areaId,
+
+        @Parameter(
+            name = "areaImage",
+            description = "구역 이미지 파일 (PNG, JPG, JPEG 지원)",
+            required = true
+        )
+        MultipartFile areaImage
     );
 }

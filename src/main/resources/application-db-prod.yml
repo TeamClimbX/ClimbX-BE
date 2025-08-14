@@ -1,0 +1,30 @@
+spring:
+  config:
+    activate:
+      on-profile: db-prod
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 10
+      auto-commit: false
+      connection-timeout: 20000
+      validation-timeout: 3000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        globally_quoted_identifiers: true
+
+  sql:
+    init:
+      mode: never

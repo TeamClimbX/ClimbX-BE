@@ -29,13 +29,12 @@ auth:
     secret: ${JWT_SECRET:default-secret-key-for-development-only-change-in-production}
     access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600} # 1시간 (초 단위)
     refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:1209600} # 2주 (초 단위)
-    issuer: ${JWT_ISSUER:https://auth.dev.climbx.me/}
-    audience: ${JWT_AUDIENCE:api.dev.climbx.me}
+    issuer: ${JWT_ISSUER:https://auth.climbx.me/}
+    audience: ${JWT_AUDIENCE:api.climbx.me}
     jws-algorithm: ${JWT_JWS_ALGORITHM:HS256}
 
 # 로깅 설정
 logging:
   level:
-    org.springframework.web.client.RestTemplate: DEBUG
-    org.springframework.security.oauth2: DEBUG
-    com.climbx.climbx.auth: DEBUG
+    org.springframework.web.client.RestTemplate: INFO
+    org.springframework.security.oauth2: INFO

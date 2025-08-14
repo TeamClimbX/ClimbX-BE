@@ -1,0 +1,26 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  jpa:
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: false
+        use_sql_comments: false
+
+logging:
+  level:
+    com.climbx: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /api/swagger
+  packages-to-scan: com.climbx.climbx
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json

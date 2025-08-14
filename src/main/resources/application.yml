@@ -1,11 +1,15 @@
 spring:
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev}
     group:
       dev:
         - db-dev
         - auth-dev
         - aws-dev
+      prod:
+        - db-prod
+        - auth-prod
+        - aws-prod
 
   jpa:
     open-in-view: false

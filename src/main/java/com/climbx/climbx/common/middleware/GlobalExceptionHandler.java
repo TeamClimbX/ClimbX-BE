@@ -43,7 +43,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
         ConstraintViolationException.class,
         MethodArgumentNotValidException.class,
-        MissingServletRequestParameterException.class
+        MissingServletRequestParameterException.class,
+        IllegalArgumentException.class
     })
     public ResponseEntity<ApiResponseDto<Void>> handleValidationException(Exception e) {
         String errorMessage = extractValidationMessage(e);
@@ -128,6 +129,8 @@ public class GlobalExceptionHandler {
                 .orElse("Validation failed");
         } else if (e instanceof MissingServletRequestParameterException msrpe) {
             return "Missing required parameter(" + msrpe.getParameterName() + ")";
+        } else if (e instanceof IllegalArgumentException iae) {
+            return "Illegal argument: " + iae.getMessage();
         }
         return "Validation failed";
     }
@@ -141,6 +144,8 @@ public class GlobalExceptionHandler {
             return ErrorCode.MISSING_REQUEST_PARAMETER;
         } else if (e instanceof MethodArgumentTypeMismatchException) {
             return ErrorCode.METHOD_ARGUMENT_TYPE_MISMATCH;
+        } else if (e instanceof IllegalArgumentException) {
+            return ErrorCode.INVALID_PARAMETER;
         }
         return ErrorCode.INTERNAL_ERROR;
     }
