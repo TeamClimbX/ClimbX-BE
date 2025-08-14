@@ -19,6 +19,7 @@ SPRING_CONTAINER_PORT=8080
 JWT_SECRET_DEV=your-jwt-secret-key
 
 # 데이터베이스 설정
+DEV_DB_URL=jdbc:mysql://host:port/database
 DEV_DB_USER=your-db-username
 DEV_DB_PASSWORD=your-db-password
 
@@ -60,6 +61,7 @@ SPRING_CONTAINER_PORT=8080
 JWT_SECRET_PROD=your-jwt-secret-key
 
 # 데이터베이스 설정
+PROD_DB_URL=jdbc:mysql://host:port/database
 PROD_DB_USER=your-db-username
 PROD_DB_PASSWORD=your-db-password
 
