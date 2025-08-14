@@ -160,8 +160,8 @@ public interface AdminGymApiDocumentation {
         Long gymId,
 
         @Parameter(
-            name = "request",
-            description = "구역 등록 요청 데이터",
+            name = "areaName",
+            description = "구역 이름",
             required = true
         )
         @Valid

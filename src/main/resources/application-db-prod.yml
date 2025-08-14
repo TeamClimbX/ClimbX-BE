@@ -19,7 +19,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     defer-datasource-initialization: true
     properties:
       hibernate:

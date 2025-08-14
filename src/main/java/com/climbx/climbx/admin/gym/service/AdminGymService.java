@@ -1,5 +1,7 @@
 package com.climbx.climbx.admin.gym.service;
 
+import com.climbx.climbx.common.enums.ErrorCode;
+import com.climbx.climbx.common.exception.InvalidParameterException;
 import com.climbx.climbx.common.service.S3Service;
 import com.climbx.climbx.gym.dto.GymAreaInfoResponseDto;
 import com.climbx.climbx.gym.entity.GymAreaEntity;
@@ -87,7 +89,7 @@ public class AdminGymService {
             .orElseThrow(() -> new GymAreaNotFoundException(areaId));
 
         if (!gymArea.gym().gymId().equals(gymId)) {
-            throw new IllegalArgumentException(
+            throw new InvalidParameterException(ErrorCode.INVALID_PARAMETER,
                 String.format("구역 ID %d는 클라이밍장 ID %d에 속하지 않습니다.", areaId, gymId));
         }
 
