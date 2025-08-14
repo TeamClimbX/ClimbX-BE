@@ -2,7 +2,8 @@ package com.climbx.climbx.user.dto;
 
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
-import java.util.Map;
+import com.climbx.climbx.user.enums.UserTierType;
+import java.util.List;
 import lombok.Builder;
 
 @Builder
@@ -12,39 +13,51 @@ public record UserProfileResponseDto(
 
     String statusMessage,
 
-    String profileImageUrl, // null 허용
+    String profileImageCdnUrl, // null 허용
 
-    Long ranking,
+    Integer ranking,
 
-    Long rating,
+    RatingResponseDto rating,
 
-    Map<String, Long> categoryRatings,
+    UserTierType tier,
 
-    Long currentStreak,
+    List<TagRatingResponseDto> categoryRatings,
 
-    Long longestStreak,
+    Integer currentStreak,
 
-    Long solvedProblemsCount,
+    Integer longestStreak,
 
-    Long rivalCount
+    Integer solvedCount,
+
+    Integer submissionCount,
+
+    Integer contributionCount,
+
+    Integer rivalCount
 ) {
 
     public static UserProfileResponseDto from(
         UserAccountEntity account,
         UserStatEntity stat,
-        Long ranking,
-        Map<String, Long> categoryRatings) {
+        UserTierType tier,
+        RatingResponseDto rating,
+        Integer ranking,
+        List<TagRatingResponseDto> categoryRatings
+    ) {
 
         return UserProfileResponseDto.builder()
             .nickname(account.nickname())
             .statusMessage(account.statusMessage())
-            .profileImageUrl(account.profileImageUrl())
+            .tier(tier)
+            .profileImageCdnUrl(account.profileImageCdnUrl())
             .ranking(ranking)
-            .rating(stat.rating())
+            .rating(rating)
             .categoryRatings(categoryRatings)
             .currentStreak(stat.currentStreak())
             .longestStreak(stat.longestStreak())
-            .solvedProblemsCount(stat.solvedProblemsCount())
+            .solvedCount(stat.solvedCount())
+            .submissionCount(stat.submissionCount())
+            .contributionCount(stat.contributionCount())
             .rivalCount(stat.rivalCount())
             .build();
     }

@@ -173,8 +173,8 @@ public class DomainService {
     public DomainResponseDto create(DomainCreateRequestDto request) {
         // 비즈니스 로직 구현
         DomainEntity entity = DomainEntity.builder()
-                .field1(request.getField1())
-                .field2(request.getField2())
+                .field1(request.field1())
+                .field2(request.field2())
                 .build();
         
         DomainEntity savedEntity = domainRepository.save(entity);
@@ -183,9 +183,15 @@ public class DomainService {
     
     public DomainResponseDto findById(Long id) {
         DomainEntity entity = domainRepository.findById(id)
-                .orElseThrow(() -> new DomainNotFoundException("항목을 찾을 수 없습니다: " + id));
+                .orElseThrow(() -> new DomainNotFoundException(id));
         
         return DomainResponseDto.from(entity);
+    }
+    
+    // 내부 메서드는 protected 또는 private 사용
+    protected DomainEntity findEntityById(Long id) {
+        return domainRepository.findById(id)
+                .orElseThrow(() -> new DomainNotFoundException(id));
     }
 }
 ```
@@ -201,8 +207,12 @@ public class DomainService {
 ```java
 @Entity
 @Table(name = "table_name")
-@Getter
+@SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Getter
+@Accessors(fluent = true)
+@Builder
 public class DomainEntity extends BaseTimeEntity {
     
     @Id
@@ -210,16 +220,13 @@ public class DomainEntity extends BaseTimeEntity {
     private Long id;
     
     @Column(nullable = false)
+    @NotBlank
+    @Size(max = 100)
     private String requiredField;
     
     @Column
+    @Size(max = 200)
     private String optionalField;
-    
-    @Builder
-    public DomainEntity(String requiredField, String optionalField) {
-        this.requiredField = requiredField;
-        this.optionalField = optionalField;
-    }
     
     // 비즈니스 메서드
     public void updateField(String newValue) {
@@ -230,51 +237,52 @@ public class DomainEntity extends BaseTimeEntity {
 
 #### Entity 작성 주의사항
 - `@NoArgsConstructor(access = AccessLevel.PROTECTED)` 필수
+- `@AllArgsConstructor(access = AccessLevel.PRIVATE)` 추가
+- `@Accessors(fluent = true)` 사용으로 fluent 접근자 제공
+- `@SQLRestriction("deleted_at IS NULL")` 추가 (soft delete 사용 시)
 - `@Setter` 사용 금지 (불변성 보장)
 - Builder 패턴 사용 권장
 - 비즈니스 로직 메서드 추가 권장
+- Bean Validation 어노테이션 적극 활용
 
 ### 4. DTO 작성 규칙
 
-#### Request DTO
+#### Request DTO (Record 패턴)
 ```java
-@Getter
-@NoArgsConstructor
-public class DomainCreateRequestDto {
+public record DomainCreateRequestDto(
     
-    @NotBlank(message = "필수 필드입니다.")
-    @Size(max = 100, message = "100자 이하여야 합니다.")
-    private String requiredField;
+    @NotBlank(message = "필수 필드는 비어있을 수 없습니다.")
+    @Size(max = 100, message = "최대 100자까지 입력 가능합니다.")
+    String requiredField,
     
-    @Size(max = 500, message = "500자 이하여야 합니다.")
-    private String optionalField;
+    @Size(max = 200, message = "최대 200자까지 입력 가능합니다.")
+    String optionalField,
     
-    @Builder
-    public DomainCreateRequestDto(String requiredField, String optionalField) {
-        this.requiredField = requiredField;
-        this.optionalField = optionalField;
-    }
+    @NotNull(message = "숫자 필드는 필수입니다.")
+    @Min(value = 1, message = "1 이상이어야 합니다.")
+    @Max(value = 100, message = "100 이하여야 합니다.")
+    Integer numberField
+) {
 }
-```
-
-#### Response DTO
-```java
-@Getter
-@Builder
-public class DomainResponseDto {
-    private Long id;
-    private String requiredField;
-    private String optionalField;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
     
+#### Response DTO (Record 패턴)
+```java
+@Builder
+public record DomainResponseDto(
+
+    Long id,
+    String requiredField,
+    String optionalField,
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt
+) {
     public static DomainResponseDto from(DomainEntity entity) {
         return DomainResponseDto.builder()
-                .id(entity.getId())
-                .requiredField(entity.getRequiredField())
-                .optionalField(entity.getOptionalField())
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
+                .id(entity.id())
+                .requiredField(entity.requiredField())
+                .optionalField(entity.optionalField())
+                .createdAt(entity.createdAt())
+                .updatedAt(entity.updatedAt())
                 .build();
     }
 }
@@ -286,29 +294,38 @@ public class DomainResponseDto {
 ```java
 // 도메인별 예외 클래스
 public class DomainNotFoundException extends BusinessException {
-    public DomainNotFoundException(String message) {
-        super(ErrorCode.DOMAIN_NOT_FOUND, message);
+    public DomainNotFoundException(Long domainId) {
+        super(ErrorCode.DOMAIN_NOT_FOUND);
+        addContext("domainId", domainId);
+    }
+    
+    public DomainNotFoundException(String identifier) {
+        super(ErrorCode.DOMAIN_NOT_FOUND);
+        addContext("identifier", identifier);
     }
 }
 
 public class DomainValidationException extends BusinessException {
-    public DomainValidationException(String message) {
-        super(ErrorCode.DOMAIN_VALIDATION_ERROR, message);
+    public DomainValidationException(String field, String value) {
+        super(ErrorCode.DOMAIN_VALIDATION_ERROR);
+        addContext("field", field);
+        addContext("value", value);
     }
 }
 ```
 
 ### 2. ErrorCode 정의
 ```java
-// ErrorCode enum에 추가
+// ErrorCode enum에 추가 (도메인별 prefix 사용)
 DOMAIN_NOT_FOUND(404, "D001", "항목을 찾을 수 없습니다."),
 DOMAIN_VALIDATION_ERROR(400, "D002", "검증 오류가 발생했습니다."),
 DOMAIN_DUPLICATE_ERROR(409, "D003", "중복된 항목입니다."),
+DOMAIN_ACCESS_DENIED(403, "D004", "접근 권한이 없습니다."),
 ```
 
 ## 테스트 작성 규칙
 
-### 1. 테스트 클래스 구조
+### 1. 테스트 클래스 구조 (Nested 패턴)
 ```java
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DomainService 테스트")
@@ -320,97 +337,65 @@ class DomainServiceTest {
     @InjectMocks
     private DomainService domainService;
     
-    @Test
-    @DisplayName("정상적으로 생성되어야 한다")
-    void create_Success() {
-        // given
-        DomainCreateRequestDto request = DomainCreateRequestDto.builder()
-                .requiredField("test")
-                .build();
+    @Nested
+    @DisplayName("생성 테스트")
+    class CreateTest {
         
-        DomainEntity entity = DomainEntity.builder()
-                .requiredField("test")
-                .build();
+        @Test
+        @DisplayName("정상적으로 생성되어야 한다")
+        void create_Success() {
+            // given
+            DomainCreateRequestDto request = new DomainCreateRequestDto(
+                "test", "optional", 10
+            );
+            
+            DomainEntity entity = DomainEntity.builder()
+                    .requiredField("test")
+                    .optionalField("optional")
+                    .numberField(10)
+                    .build();
+            
+            given(domainRepository.save(any(DomainEntity.class))).willReturn(entity);
+            
+            // when
+            DomainResponseDto response = domainService.create(request);
+            
+            // then
+            assertThat(response.requiredField()).isEqualTo("test");
+            assertThat(response.optionalField()).isEqualTo("optional");
+            
+            then(domainRepository).should().save(any(DomainEntity.class));
+        }
         
-        when(domainRepository.save(any(DomainEntity.class))).thenReturn(entity);
-        
-        // when
-        DomainResponseDto response = domainService.create(request);
-        
-        // then
-        assertThat(response.getRequiredField()).isEqualTo("test");
-        verify(domainRepository).save(any(DomainEntity.class));
+        @Test
+        @DisplayName("중복 데이터 생성 시 예외가 발생한다")
+        void create_DuplicateData_ThrowsException() {
+            // given
+            DomainCreateRequestDto request = new DomainCreateRequestDto("test", null, 10);
+            
+            given(domainRepository.existsByRequiredField("test")).willReturn(true);
+            
+            // when & then
+            assertThatThrownBy(() -> domainService.create(request))
+                .isInstanceOf(DomainDuplicateException.class);
+            
+            then(domainRepository).should(never()).save(any(DomainEntity.class));
+        }
     }
-}
-```
-
-### 2. 테스트 메서드 네이밍
-- `메서드명_상황_예상결과` 패턴 사용
-- `@DisplayName`으로 한글 설명 추가
-
-### 3. Given-When-Then 패턴
-- given: 테스트 준비
-- when: 테스트 실행
-- then: 결과 검증
-
-## 문서화 규칙
-
-### 1. Swagger 어노테이션
-```java
-@Operation(
-    summary = "사용자 생성",
-    description = "새로운 사용자를 생성합니다.",
-    responses = {
-        @ApiResponse(responseCode = "200", description = "성공"),
-        @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-        @ApiResponse(responseCode = "500", description = "서버 오류")
-    }
-)
-@PostMapping
-public ApiResponse<UserResponseDto> createUser(
-    @Parameter(description = "사용자 생성 요청 데이터")
-    @Valid @RequestBody UserCreateRequestDto request
-) {
-    // 구현
-}
-```
-
-### 2. 주석 작성 규칙
-- JavaDoc 형식 사용
-- 복잡한 비즈니스 로직에 대한 설명
-- TODO, FIXME 등 태그 활용
-
-```java
-/**
- * 사용자 계정을 생성합니다.
- * 
- * @param request 사용자 생성 요청 데이터
- * @return 생성된 사용자 정보
- * @throws UserValidationException 사용자 데이터 검증 실패시
- * @throws DuplicateNicknameException 닉네임 중복시
- */
-@Transactional
-public UserResponseDto createUser(UserCreateRequestDto request) {
-    // TODO: 이메일 중복 검증 로직 추가 필요
-    // 구현...
-}
-```
-
-## 성능 및 보안 규칙
-
-### 1. 쿼리 최적화
-- N+1 문제 방지를 위한 Fetch Join 사용
-- 페이징 처리 필수
-- 불필요한 데이터 조회 방지
-
-```java
-@Query("SELECT u FROM UserEntity u JOIN FETCH u.userStat WHERE u.id = :id")
-Optional<UserEntity> findByIdWithStat(@Param("id") Long id);
-```
-
-### 2. 보안 규칙
-- 민감한 정보 로깅 금지
-- 사용자 입력 데이터 검증 필수
-- SQL Injection 방지를 위한 Parameterized Query 사용
-
-이러한 규칙들을 준수하여 일관성 있고 유지보수하기 쉬운 코드를 작성할 수 있습니다.
+    
+    @Nested
+    @DisplayName("조회 테스트")
+    class FindTest {
+        
+        @Test
+        @DisplayName("ID로 정상 조회가 되어야 한다")
+        void findById_Success() {
+            // given, when, then 패턴
+        }
+        
+        @Test
+        @DisplayName("존재하지 않는 ID 조회 시 예외가 발생한다")
+        void findById_NotFound_ThrowsException() {
+            // given, when, then 패턴
+        }
+````

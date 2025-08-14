@@ -21,15 +21,16 @@ public class NonceService {
      * @throws IllegalArgumentException nonce가 null이거나 빈 문자열인 경우
      * @throws InvalidNonceException    이미 사용된 nonce인 경우
      */
-    public void validateAndUseNonce(String nonce) {
+    public void validateAndUseNonce(String nonce, OAuth2ProviderType providerType) {
         if (nonce == null || nonce.trim().isEmpty()) {
-            throw new InvalidNonceException(OAuth2ProviderType.KAKAO);
+            log.warn("비어있는 nonce 감지");
+            throw new InvalidNonceException(providerType);
         }
 
         // 이미 사용된 nonce인지 확인
         if (usedNonces.getIfPresent(nonce) != null) {
             log.warn("이미 사용된 nonce 감지: {}", nonce);
-            throw new InvalidNonceException(OAuth2ProviderType.KAKAO); // 기본값 사용
+            throw new InvalidNonceException(providerType); // 기본값 사용
         }
 
         // 사용된 nonce로 등록

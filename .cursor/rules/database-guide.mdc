@@ -153,6 +153,12 @@ public class UserEntity extends SoftDeleteTimeEntity {
 ```java
 @Entity
 @Table(name = "reviews")
+@SQLRestriction("deleted_at IS NULL")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Getter
+@Accessors(fluent = true)
+@Builder
 public class ReviewEntity extends BaseTimeEntity {
     
     @Id
@@ -160,44 +166,60 @@ public class ReviewEntity extends BaseTimeEntity {
     private Long id;
     
     @Column(nullable = false)
+    @NotBlank
+    @Size(max = 1000)
     private String content;
     
     @Column(nullable = false)
+    @NotNull
+    @Min(1)
+    @Max(5)
     private Integer rating;
     
-    // Lazy Loading 필수
+    // Lazy Loading 필수, fluent accessor 방식
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private UserEntity user;
+    @NotNull
+    private UserAccountEntity userAccountEntity;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "gym_id", nullable = false)
-    private GymEntity gym;
+    @NotNull
+    private GymEntity gymEntity;
 }
 ```
 
 #### One-to-Many (일대다)
 ```java
 @Entity
-@Table(name = "users")
-public class UserEntity extends SoftDeleteTimeEntity {
+@Table(name = "user_accounts")
+@SQLRestriction("deleted_at IS NULL")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Getter
+@Accessors(fluent = true)
+@Builder
+public class UserAccountEntity extends BaseTimeEntity {
     
     // 기본 필드들...
     
     // 양방향 연관관계 (Lazy Loading)
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "userAccountEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReviewEntity> reviews = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "userAccountEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<VideoEntity> videos = new ArrayList<>();
     
     // 연관관계 편의 메서드
     public void addReview(ReviewEntity review) {
         this.reviews.add(review);
-        review.setUser(this);
+        // review.setUserAccountEntity(this); - Builder 패턴 사용으로 불필요
     }
     
     public void removeReview(ReviewEntity review) {
         this.reviews.remove(review);
-        review.setUser(null);
     }
+}
 }
 ```
 

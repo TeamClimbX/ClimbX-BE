@@ -40,8 +40,12 @@ src/test/java/com/climbx/climbx/review/
 ```java
 @Entity
 @Table(name = "reviews")
-@Getter
+@SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Getter
+@Accessors(fluent = true)
+@Builder
 public class ReviewEntity extends BaseTimeEntity {
     
     @Id
@@ -49,35 +53,37 @@ public class ReviewEntity extends BaseTimeEntity {
     private Long id;
     
     @Column(nullable = false)
+    @NotBlank
+    @Size(max = 100)
     private String title;
     
     @Column(columnDefinition = "TEXT")
+    @Size(max = 1000)
     private String content;
     
     @Column(nullable = false)
+    @NotNull
+    @Min(1)
+    @Max(5)
     private Integer rating;
     
     // 연관관계 매핑
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private UserAccountEntity user;
+    @NotNull
+    private UserAccountEntity userAccountEntity;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "gym_id", nullable = false)
-    private GymEntity gym;
-    
-    @Builder
-    public ReviewEntity(String title, String content, Integer rating, 
-                       UserAccountEntity user, GymEntity gym) {
-        this.title = title;
-        this.content = content;
-        this.rating = rating;
-        this.user = user;
-        this.gym = gym;
-    }
+    @NotNull
+    private GymEntity gymEntity;
     
     public void update(String title, String content, Integer rating) {
         this.title = title;
+        this.content = content;
+        this.rating = rating;
+    }
+}
         this.content = content;
         this.rating = rating;
     }
@@ -87,24 +93,33 @@ public class ReviewEntity extends BaseTimeEntity {
 ### Entity 작성 주의사항
 - `BaseTimeEntity` 또는 `SoftDeleteTimeEntity` 상속
 - `@NoArgsConstructor(access = AccessLevel.PROTECTED)` 필수
+- `@AllArgsConstructor(access = AccessLevel.PRIVATE)` 추가
+- `@Accessors(fluent = true)` 사용으로 fluent 접근자 제공
 - Builder 패턴 사용 권장
 - 연관관계는 `FetchType.LAZY` 사용
+- `@SQLRestriction("deleted_at IS NULL")` 추가 (soft delete 사용 시)
 - 비즈니스 로직을 위한 메서드 추가 (예: `update()`)
+- 적절한 Bean Validation 어노테이션 사용
 
 ## 3. Repository 인터페이스 작성
 
 ```java
-@Repository
 public interface ReviewRepository extends JpaRepository<ReviewEntity, Long> {
     
-    List<ReviewEntity> findByGymIdOrderByCreatedAtDesc(Long gymId);
+    List<ReviewEntity> findByGymEntityIdOrderByCreatedAtDesc(Long gymId);
     
-    List<ReviewEntity> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<ReviewEntity> findByUserAccountEntityUserIdOrderByCreatedAtDesc(Long userId);
     
-    @Query("SELECT AVG(r.rating) FROM ReviewEntity r WHERE r.gym.id = :gymId")
+    @Query("""
+        SELECT AVG(r.rating) 
+        FROM ReviewEntity r 
+        WHERE r.gymEntity.id = :gymId
+        """)
     Double findAverageRatingByGymId(@Param("gymId") Long gymId);
     
-    boolean existsByUserIdAndGymId(Long userId, Long gymId);
+    boolean existsByUserAccountEntityUserIdAndGymEntityId(Long userId, Long gymId);
+    
+    Page<ReviewEntity> findByGymEntityId(Long gymId, Pageable pageable);
 }
 ```
 
@@ -117,47 +132,51 @@ public interface ReviewRepository extends JpaRepository<ReviewEntity, Long> {
 
 ### Request DTO 예시
 ```java
-@Getter
-@NoArgsConstructor
-public class ReviewCreateRequestDto {
-    
+public record ReviewCreateRequestDto(
     @NotBlank(message = "제목은 필수입니다.")
     @Size(max = 100, message = "제목은 100자 이하여야 합니다.")
-    private String title;
+    String title,
     
     @Size(max = 1000, message = "내용은 1000자 이하여야 합니다.")
-    private String content;
+    String content,
     
     @NotNull(message = "평점은 필수입니다.")
     @Min(value = 1, message = "평점은 1 이상이어야 합니다.")
     @Max(value = 5, message = "평점은 5 이하여야 합니다.")
-    private Integer rating;
+    Integer rating,
     
     @NotNull(message = "체육관 ID는 필수입니다.")
-    private Long gymId;
+    Long gymId
+) {
 }
 ```
 
 ### Response DTO 예시
 ```java
-@Getter
 @Builder
-public class ReviewResponseDto {
-    private Long id;
-    private String title;
-    private String content;
-    private Integer rating;
-    private String userName;
-    private String gymName;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    
+public record ReviewResponseDto(
+    Long id,
+    String title,
+    String content,
+    Integer rating,
+    String userNickname,
+    String gymName,
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt
+) {
     public static ReviewResponseDto from(ReviewEntity review) {
         return ReviewResponseDto.builder()
-                .id(review.getId())
-                .title(review.getTitle())
-                .content(review.getContent())
-                .rating(review.getRating())
+                .id(review.id())
+                .title(review.title())
+                .content(review.content())
+                .rating(review.rating())
+                .userNickname(review.userAccountEntity().nickname())
+                .gymName(review.gymEntity().name())
+                .createdAt(review.createdAt())
+                .updatedAt(review.updatedAt())
+                .build();
+    }
+}
                 .userName(review.getUser().getNickname())
                 .gymName(review.getGym().getName())
                 .createdAt(review.getCreatedAt())
@@ -188,16 +207,35 @@ public class ReviewService {
         
         UserAccountEntity user = userAccountRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
+```java
+@Service
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
+public class ReviewService {
+    
+    private final ReviewRepository reviewRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final GymRepository gymRepository;
+    
+    @Transactional
+    public ReviewResponseDto createReview(Long userId, ReviewCreateRequestDto request) {
+        UserAccountEntity user = userAccountRepository.findByUserId(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
         
-        GymEntity gym = gymRepository.findById(request.getGymId())
-                .orElseThrow(() -> new GymNotFoundException("체육관을 찾을 수 없습니다."));
+        GymEntity gym = gymRepository.findById(request.gymId())
+                .orElseThrow(() -> new GymNotFoundException(request.gymId()));
+        
+        // 중복 리뷰 검증
+        if (reviewRepository.existsByUserAccountEntityUserIdAndGymEntityId(userId, request.gymId())) {
+            throw new DuplicateReviewException("이미 해당 체육관에 리뷰를 작성했습니다.");
+        }
         
         ReviewEntity review = ReviewEntity.builder()
-                .title(request.getTitle())
-                .content(request.getContent())
-                .rating(request.getRating())
-                .user(user)
-                .gym(gym)
+                .title(request.title())
+                .content(request.content())
+                .rating(request.rating())
+                .userAccountEntity(user)
+                .gymEntity(gym)
                 .build();
         
         ReviewEntity savedReview = reviewRepository.save(review);
@@ -205,10 +243,10 @@ public class ReviewService {
     }
     
     public List<ReviewResponseDto> getReviewsByGym(Long gymId) {
-        return reviewRepository.findByGymIdOrderByCreatedAtDesc(gymId)
+        return reviewRepository.findByGymEntityIdOrderByCreatedAtDesc(gymId)
                 .stream()
                 .map(ReviewResponseDto::from)
-                .collect(Collectors.toList());
+                .toList();
     }
 }
 ```
@@ -226,49 +264,53 @@ public class ReviewService {
 @RequestMapping("/api/reviews")
 @RequiredArgsConstructor
 @Tag(name = "Review", description = "리뷰 API")
-public class ReviewController {
+public class ReviewController implements ReviewApiDocumentation {
     
     private final ReviewService reviewService;
     
+    @Override
     @PostMapping
-    @Operation(summary = "리뷰 생성", description = "새로운 리뷰를 생성합니다.")
-    public ApiResponse<ReviewResponseDto> createReview(
-            @AuthenticationPrincipal UserPrincipal userPrincipal,
+    @SuccessStatus(value = HttpStatus.CREATED)
+    public ReviewResponseDto createReview(
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody ReviewCreateRequestDto request) {
         
-        ReviewResponseDto response = reviewService.createReview(userPrincipal.getId(), request);
-        return ApiResponse.success(response);
+        return reviewService.createReview(userId, request);
     }
     
+    @Override
     @GetMapping("/gym/{gymId}")
-    @Operation(summary = "체육관 리뷰 조회", description = "특정 체육관의 모든 리뷰를 조회합니다.")
-    public ApiResponse<List<ReviewResponseDto>> getReviewsByGym(
+    @SuccessStatus(value = HttpStatus.OK)
+    public List<ReviewResponseDto> getReviewsByGym(
             @PathVariable Long gymId) {
         
-        List<ReviewResponseDto> reviews = reviewService.getReviewsByGym(gymId);
-        return ApiResponse.success(reviews);
+        return reviewService.getReviewsByGym(gymId);
     }
 }
 ```
 
 ### Controller 작성 가이드
-- `ApiResponse` 래퍼 사용 필수
+- API Documentation 인터페이스 구현 (Swagger 문서화)
+- `@SuccessStatus` 애노테이션으로 성공 상태 코드 명시
 - `@Valid` 애노테이션으로 DTO 검증
-- Swagger 문서화 애노테이션 추가
+- ApiResponseAdvice가 자동으로 응답 래핑하므로 직접 DTO 반환
+- `@AuthenticationPrincipal Long userId` 패턴 사용
 - RESTful URL 설계 준수
 
 ## 7. 예외 클래스 작성
 
 ```java
 public class ReviewNotFoundException extends BusinessException {
-    public ReviewNotFoundException(String message) {
-        super(ErrorCode.REVIEW_NOT_FOUND, message);
+    public ReviewNotFoundException(Long reviewId) {
+        super(ErrorCode.REVIEW_NOT_FOUND);
+        addContext("reviewId", reviewId);
     }
 }
 
-public class ReviewValidationException extends BusinessException {
-    public ReviewValidationException(String message) {
-        super(ErrorCode.REVIEW_VALIDATION_ERROR, message);
+public class DuplicateReviewException extends BusinessException {
+    public DuplicateReviewException(String message) {
+        super(ErrorCode.DUPLICATE_REVIEW);
+        addContext("message", message);
     }
 }
 ```
@@ -276,8 +318,10 @@ public class ReviewValidationException extends BusinessException {
 ### ErrorCode 추가
 `ErrorCode.java`에 새로운 에러 코드 추가:
 ```java
+// Review 관련 에러 (R로 시작)
 REVIEW_NOT_FOUND(404, "R001", "리뷰를 찾을 수 없습니다."),
-REVIEW_VALIDATION_ERROR(400, "R002", "리뷰 검증 오류"),
+DUPLICATE_REVIEW(409, "R002", "이미 해당 체육관에 리뷰를 작성했습니다."),
+INVALID_REVIEW_RATING(400, "R003", "잘못된 평점입니다."),
 ```
 
 ## 8. 테스트 작성
@@ -285,14 +329,38 @@ REVIEW_VALIDATION_ERROR(400, "R002", "리뷰 검증 오류"),
 ### Fixture 클래스
 ```java
 public class ReviewFixture {
+    
+    private static final String DEFAULT_TITLE = "테스트 리뷰";
+    private static final String DEFAULT_CONTENT = "테스트 내용입니다.";
+    private static final Integer DEFAULT_RATING = 5;
+    
     public static ReviewEntity createReview(UserAccountEntity user, GymEntity gym) {
+        return createReview(user, gym, DEFAULT_TITLE, DEFAULT_CONTENT, DEFAULT_RATING);
+    }
+    
+    public static ReviewEntity createReview(
+        UserAccountEntity user, 
+        GymEntity gym, 
+        String title, 
+        String content, 
+        Integer rating
+    ) {
         return ReviewEntity.builder()
-                .title("테스트 리뷰")
-                .content("테스트 내용")
-                .rating(5)
-                .user(user)
-                .gym(gym)
+                .title(title)
+                .content(content)
+                .rating(rating)
+                .userAccountEntity(user)
+                .gymEntity(gym)
                 .build();
+    }
+    
+    public static ReviewCreateRequestDto createReviewCreateRequest(Long gymId) {
+        return new ReviewCreateRequestDto(
+            DEFAULT_TITLE,
+            DEFAULT_CONTENT,
+            DEFAULT_RATING,
+            gymId
+        );
     }
 }
 ```
@@ -300,6 +368,7 @@ public class ReviewFixture {
 ### Service 테스트
 ```java
 @ExtendWith(MockitoExtension.class)
+@DisplayName("ReviewService 테스트")
 class ReviewServiceTest {
     
     @Mock
@@ -314,32 +383,127 @@ class ReviewServiceTest {
     @InjectMocks
     private ReviewService reviewService;
     
-    @Test
-    @DisplayName("리뷰 생성 성공")
-    void createReview_Success() {
-        // given, when, then 패턴으로 테스트 작성
+    @Nested
+    @DisplayName("리뷰 생성 테스트")
+    class CreateReviewTest {
+        
+        @Test
+        @DisplayName("리뷰 생성에 성공한다")
+        void createReview_Success() {
+            // given
+            Long userId = 1L;
+            Long gymId = 1L;
+            ReviewCreateRequestDto request = ReviewFixture.createReviewCreateRequest(gymId);
+            
+            UserAccountEntity user = UserFixture.createUserAccountEntity(userId);
+            GymEntity gym = GymFixture.createGymEntity(gymId);
+            ReviewEntity review = ReviewFixture.createReview(user, gym);
+            
+            given(userAccountRepository.findByUserId(userId)).willReturn(Optional.of(user));
+            given(gymRepository.findById(gymId)).willReturn(Optional.of(gym));
+            given(reviewRepository.existsByUserAccountEntityUserIdAndGymEntityId(userId, gymId))
+                .willReturn(false);
+            given(reviewRepository.save(any(ReviewEntity.class))).willReturn(review);
+            
+            // when
+            ReviewResponseDto result = reviewService.createReview(userId, request);
+            
+            // then
+            assertThat(result).isNotNull();
+            assertThat(result.title()).isEqualTo(request.title());
+            assertThat(result.rating()).isEqualTo(request.rating());
+            
+            then(reviewRepository).should().save(any(ReviewEntity.class));
+        }
+        
+        @Test
+        @DisplayName("중복 리뷰 생성 시 예외가 발생한다")
+        void createReview_DuplicateReview_ThrowsException() {
+            // given
+            Long userId = 1L;
+            Long gymId = 1L;
+            ReviewCreateRequestDto request = ReviewFixture.createReviewCreateRequest(gymId);
+            
+            UserAccountEntity user = UserFixture.createUserAccountEntity(userId);
+            GymEntity gym = GymFixture.createGymEntity(gymId);
+            
+            given(userAccountRepository.findByUserId(userId)).willReturn(Optional.of(user));
+            given(gymRepository.findById(gymId)).willReturn(Optional.of(gym));
+            given(reviewRepository.existsByUserAccountEntityUserIdAndGymEntityId(userId, gymId))
+                .willReturn(true);
+            
+            // when & then
+            assertThatThrownBy(() -> reviewService.createReview(userId, request))
+                .isInstanceOf(DuplicateReviewException.class);
+            
+            then(reviewRepository).should(never()).save(any(ReviewEntity.class));
+        }
     }
 }
 ```
 
-## 9. 체크리스트
+## 9. API Documentation 인터페이스 작성
+
+```java
+@Validated
+@Tag(name = "Review", description = "리뷰 관련 API")
+public interface ReviewApiDocumentation {
+    
+    @Operation(
+        operationId = "createReview",
+        summary = "리뷰 생성",
+        description = "새로운 리뷰를 생성합니다."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "리뷰 생성 성공"),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        @ApiResponse(responseCode = "409", description = "중복 리뷰")
+    })
+    ReviewResponseDto createReview(
+        @Parameter(description = "사용자 ID", hidden = true)
+        Long userId,
+        
+        @Parameter(description = "리뷰 생성 요청")
+        @Valid ReviewCreateRequestDto request
+    );
+    
+    @Operation(
+        operationId = "getReviewsByGym",
+        summary = "체육관 리뷰 조회",
+        description = "특정 체육관의 모든 리뷰를 조회합니다."
+    )
+    List<ReviewResponseDto> getReviewsByGym(
+        @Parameter(description = "체육관 ID", example = "1")
+        @PathVariable Long gymId
+    );
+}
+```
+
+## 10. 체크리스트
 
 ### 필수 구현 사항
 - [ ] Entity 클래스 작성 및 연관관계 설정
 - [ ] Repository 인터페이스 작성
 - [ ] Service 클래스 비즈니스 로직 구현
 - [ ] Controller REST API 구현
-- [ ] DTO 클래스 작성 및 검증 애노테이션 추가
+- [ ] API Documentation 인터페이스 작성
+- [ ] DTO 클래스 작성 및 검증 애노테이션 추가 (Record 사용)
 - [ ] Custom Exception 클래스 작성
 - [ ] ErrorCode 추가
 
 ### 테스트 작성
-- [ ] Service 단위 테스트
+- [ ] Service 단위 테스트 (Nested 구조)
 - [ ] Controller 통합 테스트
-- [ ] Fixture 클래스 작성
+- [ ] Fixture 클래스 작성 (다양한 생성 메서드 제공)
+
+### 코드 품질
+- [ ] `@Accessors(fluent = true)` 적용
+- [ ] `@SQLRestriction` 적용 (필요시)
+- [ ] `@SuccessStatus` 어노테이션 사용
+- [ ] ApiResponseAdvice 활용 (직접 DTO 반환)
 
 ### 문서화
-- [ ] Swagger API 문서 애노테이션 추가
+- [ ] Swagger API 문서 인터페이스 작성
 - [ ] README 업데이트 (필요시)
 
 이 가이드를 따르면 일관성 있고 유지보수하기 쉬운 새로운 기능을 추가할 수 있습니다.

@@ -3,27 +3,25 @@ spring:
   security:
     oauth2:
       # Kakao OAuth2 설정
-
       kakao:
         jwks-uri: https://kauth.kakao.com/.well-known/jwks.json
         issuer: https://kauth.kakao.com
         audience: ${KAKAO_NATIVE_APP_KEY}
 
-      # Google OAuth2 설정 예시 (주석 해제 후 사용)
-      # google:
-      #   client:
-      #     client-id: ${GOOGLE_CLIENT_ID}
-      #     client-secret: ${GOOGLE_CLIENT_SECRET}
-      #     jwks-uri: https://www.googleapis.com/oauth2/v3/certs
-      #     issuer: https://accounts.google.com
-      
-      # Naver OAuth2 설정 예시 (주석 해제 후 사용)
-      # naver:
-      #   client:
-      #     client-id: ${NAVER_CLIENT_ID}
-      #     client-secret: ${NAVER_CLIENT_SECRET}
-      #     jwks-uri: https://nid.naver.com/.well-known/jwks.json
-      #     issuer: https://nid.naver.com 
+      # Google OAuth2 설정
+      google:
+        jwks-uri: https://www.googleapis.com/oauth2/v3/certs
+        default-issuer: accounts.google.com
+        http-issuer: https://accounts.google.com
+        android-audience: ${GOOGLE_ANDROID_APP_KEY:temporary-google-android-app-key} # default 값은 작동하지 않음
+        ios-audience: ${GOOGLE_IOS_APP_KEY:temporary-google-ios-app-key} # default 값은 작동하지 않음
+
+      # Apple OAuth2 설정
+      apple:
+        jwks-uri: https://appleid.apple.com/auth/keys
+        issuer: https://appleid.apple.com
+        android-audience: ${APPLE_ANDROID_APP_KEY:temporary-apple-android-client-id} # default 값은 작동하지 않음
+        ios-audience: ${APPLE_IOS_APP_KEY:temporary-apple-ios-client-id} # default 값은 작동하지 않음
 
 # JWT 설정
 auth:
@@ -31,8 +29,8 @@ auth:
     secret: ${JWT_SECRET:default-secret-key-for-development-only-change-in-production}
     access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600} # 1시간 (초 단위)
     refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:1209600} # 2주 (초 단위)
-    issuer: ${JWT_ISSUER:climbx-api-dev}
-    audience: ${JWT_AUDIENCE:climbx-client}
+    issuer: ${JWT_ISSUER:https://auth.dev.climbx.me/}
+    audience: ${JWT_AUDIENCE:api.dev.climbx.me}
     jws-algorithm: ${JWT_JWS_ALGORITHM:HS256}
 
 # 로깅 설정

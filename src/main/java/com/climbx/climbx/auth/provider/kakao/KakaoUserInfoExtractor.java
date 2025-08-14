@@ -3,6 +3,7 @@ package com.climbx.climbx.auth.provider.kakao;
 import com.climbx.climbx.auth.dto.ValidatedTokenInfoDto;
 import com.climbx.climbx.auth.enums.OAuth2ProviderType;
 import com.climbx.climbx.auth.provider.UserInfoExtractor;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -35,13 +36,22 @@ public class KakaoUserInfoExtractor implements UserInfoExtractor {
     }
 
     @Override
-    public String getIssuer() {
-        return issuer;
+    public List<String> getIssuer() {
+        return List.of(
+            issuer
+        );
     }
 
     @Override
-    public String getAudience() {
-        return audience;
+    public List<String> getAudience() {
+        return List.of(
+            audience
+        );
+    }
+
+    @Override
+    public boolean nonceCheckEnabled() {
+        return true;
     }
 
     @Override
@@ -51,7 +61,7 @@ public class KakaoUserInfoExtractor implements UserInfoExtractor {
         String providerId = jwt.getSubject(); // sub 클레임
         String email = jwt.getClaimAsString("email");
         String nickname = jwt.getClaimAsString("nickname");
-        String profileImageUrl = jwt.getClaimAsString("profile_image");
+        String profileImageUrl = jwt.getClaimAsString("picture");
 
         log.debug(
             "Kakao 사용자 정보 추출 완료: providerId={}, email={}, nickname={}",
@@ -65,7 +75,7 @@ public class KakaoUserInfoExtractor implements UserInfoExtractor {
             .nickname(nickname)
             .email(email)
             .profileImageUrl(profileImageUrl)
-            .providerType(OAuth2ProviderType.KAKAO.name())
+            .providerType(OAuth2ProviderType.KAKAO)
             .build();
     }
 } 

@@ -1,7 +1,7 @@
 package com.climbx.climbx.user.exception;
 
-import com.climbx.climbx.common.error.BusinessException;
-import com.climbx.climbx.common.error.ErrorCode;
+import com.climbx.climbx.common.enums.ErrorCode;
+import com.climbx.climbx.common.exception.BusinessException;
 
 public class NicknameMismatchException extends BusinessException {
 

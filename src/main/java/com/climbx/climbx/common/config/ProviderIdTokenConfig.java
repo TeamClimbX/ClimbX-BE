@@ -1,5 +1,6 @@
 package com.climbx.climbx.common.config;
 
+import com.climbx.climbx.auth.enums.OAuth2ProviderType;
 import com.climbx.climbx.auth.provider.UserInfoExtractor;
 import java.util.List;
 import java.util.Map;
@@ -32,12 +33,12 @@ public class ProviderIdTokenConfig {
      * Provider별 JwtDecoder 맵을 생성합니다. 각 Provider의 구현체에서 제공하는 설정을 사용하여 JwtDecoder를 동적으로 생성합니다.
      */
     @Bean
-    public Map<String, JwtDecoder> oauth2IdTokenDecoders() {
+    public Map<OAuth2ProviderType, JwtDecoder> oauth2IdTokenDecoders() {
         log.info("OAuth2 ID Token Decoders 초기화 시작");
 
-        Map<String, JwtDecoder> decoders = userInfoExtractors.stream()
+        Map<OAuth2ProviderType, JwtDecoder> decoders = userInfoExtractors.stream()
             .collect(Collectors.toMap(
-                extractor -> extractor.getProviderType().name().toLowerCase(),
+                UserInfoExtractor::getProviderType,
                 this::createJwtDecoder
             ));
 
@@ -51,9 +52,11 @@ public class ProviderIdTokenConfig {
     private JwtDecoder createJwtDecoder(UserInfoExtractor extractor) {
         String providerType = extractor.getProviderType().name();
         String jwksUri = extractor.getJwksUri();
-        String issuer = extractor.getIssuer();
+        List<String> issuers = extractor.getIssuer();
+        List<String> audiences = extractor.getAudience();
 
-        log.debug("{} JwtDecoder 생성 시작: jwksUri={}, issuer={}", providerType, jwksUri, issuer);
+        log.debug("{} JwtDecoder 생성 시작: jwksUri={}, issuer={}", providerType, jwksUri,
+            issuers.toString());
 
         // NimbusJwtDecoder를 직접 생성하여 커스텀 검증기 설정 가능
         NimbusJwtDecoder decoder = NimbusJwtDecoder
@@ -61,16 +64,15 @@ public class ProviderIdTokenConfig {
             .jwsAlgorithm(SignatureAlgorithm.RS256)
             .build();
 
-        // 표준 검증기 설정 (issuer 검증 포함)
-        OAuth2TokenValidator<Jwt> defaultValidators = JwtValidators.createDefaultWithIssuer(issuer);
+        // 기본 검증 - exp, nbf 등
+        OAuth2TokenValidator<Jwt> defaultValidators = JwtValidators.createDefault();
 
-        // audience 검증을 위한 커스텀 검증기
-        OAuth2TokenValidator<Jwt> audienceValidator = createAudienceValidator(
-            extractor.getAudience());
+        OAuth2TokenValidator<Jwt> issuerValidator = createMultiIssuerValidator(issuers);
+        OAuth2TokenValidator<Jwt> audienceValidator = createMultiAudienceValidator(audiences);
 
-        // 모든 검증기를 결합
         OAuth2TokenValidator<Jwt> combinedValidator = new DelegatingOAuth2TokenValidator<>(
             defaultValidators,
+            issuerValidator,
             audienceValidator
         );
 
@@ -81,20 +83,48 @@ public class ProviderIdTokenConfig {
     }
 
     /**
-     * Audience 검증을 위한 커스텀 Validator 생성 재사용 가능한 검증기입니다.
+     * 여러 issuer를 지원하는 커스텀 Validator 생성 List에 포함된 issuer 중 하나라도 일치하면 검증 통과
      */
-    private OAuth2TokenValidator<Jwt> createAudienceValidator(String expectedAudience) {
+    private OAuth2TokenValidator<Jwt> createMultiIssuerValidator(List<String> expectedIssuers) {
         return jwt -> {
-            List<String> audiences = jwt.getAudience();
+            String actualIssuer = jwt.getIssuer().toString();
 
-            if (audiences != null && audiences.contains(expectedAudience)) {
+            if (expectedIssuers.contains(actualIssuer)) {
                 return OAuth2TokenValidatorResult.success();
             }
 
             return OAuth2TokenValidatorResult.failure(
                 new OAuth2Error(
+                    "invalid_issuer",
+                    "The required issuer is missing. Expected one of: "
+                        + expectedIssuers + ", but was: " + actualIssuer,
+                    null
+                )
+            );
+        };
+    }
+
+    /**
+     * 여러 audience를 지원하는 커스텀 Validator 생성 List에 포함된 audience 중 하나라도 일치하면 검증 통과
+     */
+    private OAuth2TokenValidator<Jwt> createMultiAudienceValidator(List<String> expectedAudiences) {
+        return jwt -> {
+            List<String> actualAudiences = jwt.getAudience();
+
+            if (actualAudiences != null) {
+                // JWT의 audience 목록과 기대하는 audience 목록이 교집합을 가지는지 확인
+                for (String expectedAudience : expectedAudiences) {
+                    if (actualAudiences.contains(expectedAudience)) {
+                        return OAuth2TokenValidatorResult.success();
+                    }
+                }
+            }
+
+            return OAuth2TokenValidatorResult.failure(
+                new OAuth2Error(
                     "invalid_audience",
-                    "The required audience is missing. Expected: " + expectedAudience,
+                    "The required audience is missing. Expected one of: "
+                        + expectedAudiences + ", but was: " + actualAudiences,
                     null
                 )
             );

@@ -1,10 +1,15 @@
 spring:
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev}
     group:
       dev:
         - db-dev
         - auth-dev
+        - aws-dev
+      prod:
+        - db-prod
+        - auth-prod
+        - aws-prod
 
   jpa:
     open-in-view: false
@@ -15,10 +20,16 @@ spring:
         globally_quoted_identifiers_skip_column_definitions: true
 
   jackson:
+    mapper:
+      accept-case-insensitive-enums: true # enum 대소문자 구분 없이 직렬화/역직렬화
     serialization:
       write-dates-as-timestamps: false # ISO 8601 format
     date-format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
     time-zone: UTC
+
+  servlet.multipart:
+    max-file-size: 10MB
+    max-request-size: 10MB
 
 server:
   port: 8080
@@ -27,14 +38,3 @@ logging:
   level:
     root: INFO
     com.climbx: INFO
-
-springdoc:
-  api-docs:
-    enabled: true
-    path: /v3/api-docs
-  swagger-ui:
-    enabled: true
-    path: /swagger-ui.html
-  packages-to-scan: com.climbx.climbx
-  default-consumes-media-type: application/json
-  default-produces-media-type: application/json

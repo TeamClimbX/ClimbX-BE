@@ -16,3 +16,11 @@ logging:
     org.springframework.web: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /api/swagger
+  packages-to-scan: com.climbx.climbx
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json

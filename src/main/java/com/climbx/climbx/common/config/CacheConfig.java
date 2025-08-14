@@ -34,4 +34,13 @@ public class CacheConfig {
             .recordStats()
             .build();
     }
+
+    @Bean
+    public Cache<String, Boolean> existingBuckets() {
+        return Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofDays(7))
+            .maximumSize(100)
+            .recordStats()
+            .build();
+    }
 } 

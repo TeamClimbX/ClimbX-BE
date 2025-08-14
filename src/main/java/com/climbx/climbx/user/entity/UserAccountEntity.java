@@ -2,9 +2,12 @@ package com.climbx.climbx.user.entity;
 
 import com.climbx.climbx.auth.entity.UserAuthEntity;
 import com.climbx.climbx.common.entity.BaseTimeEntity;
+import com.climbx.climbx.common.enums.RoleType;
 import com.climbx.climbx.video.entity.VideoEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -12,7 +15,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -23,9 +25,11 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "user_accounts")
+@SQLRestriction("deleted_at IS NULL AND role = 'USER'")
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 @AllArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 @Getter
@@ -38,27 +42,22 @@ public class UserAccountEntity extends BaseTimeEntity {
     @Column(name = "user_id", updatable = false, nullable = false)
     private Long userId; // 사용자 ID
 
-    @Column(name = "role", length = 20, nullable = false)
+    @Column(name = "role", columnDefinition = "varchar(32)", nullable = false)
     @NotNull
-    @Size(max = 20)
-    private String role; // USER, ADMIN 등 권한
+    @Enumerated(EnumType.STRING)
+    private RoleType role; // USER, ADMIN 등 권한
 
-    @Column(name = "nickname", length = 50, unique = true, nullable = false)
+    @Column(name = "nickname", length = 64, unique = true, nullable = false)
     @NotBlank
-    @Size(min = 2, max = 50)
+    @Size(min = 1, max = 64)
     private String nickname; // 사용자 닉네임
 
-    @Column(name = "email", length = 100, nullable = true)
-    @Email
-    @Size(max = 100)
-    private String email; // 사용자 이메일 (주 이메일)
-
-    @Column(name = "status_message", length = 100, nullable = true)
-    @Size(max = 100) // nullable
+    @Column(name = "status_message", length = 128, nullable = true)
+    @Size(max = 128) // nullable
     private String statusMessage; // 상태 메시지
 
-    @Column(name = "profile_image_url", length = 255, nullable = true)
-    private String profileImageUrl; // 프로필 이미지 URL
+    @Column(name = "profile_image_cdn_url", length = 256, nullable = true)
+    private String profileImageCdnUrl; // 프로필 이미지 URL
 
     @Builder.Default
     @Column(name = "last_login_date", nullable = false)
@@ -71,18 +70,18 @@ public class UserAccountEntity extends BaseTimeEntity {
     private List<VideoEntity> videoEntityList; // 비디오 엔티티와의 관계 (추가 예시)
 
     @OneToMany(mappedBy = "userAccountEntity", fetch = FetchType.LAZY)
-    private List<VideoEntity> submissionEntityList; // 제출 엔티티와의 관계 (추가 예시)
-
-    @OneToMany(mappedBy = "userAccountEntity", fetch = FetchType.LAZY)
     private List<UserAuthEntity> userAuthEntityList; // OAuth2 인증 정보와의 관계
 
     public void markLogin() {
         this.lastLoginDate = LocalDate.now(); // 현재 날짜로 마지막 접속 날짜 갱신
     }
 
-    public void modifyProfile(String nickname, String statusMessage, String profileImageUrl) {
+    public void modifyProfileInfo(String nickname, String statusMessage) {
         this.nickname = nickname;
         this.statusMessage = statusMessage;
-        this.profileImageUrl = profileImageUrl;
+    }
+
+    public void updateProfileImageUrl(String profileImageUrl) {
+        this.profileImageCdnUrl = profileImageUrl;
     }
 }

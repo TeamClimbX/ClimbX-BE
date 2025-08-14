@@ -1,6 +1,6 @@
 package com.climbx.climbx.auth.service;
 
-import com.climbx.climbx.common.security.exception.InvalidTokenException;
+import com.climbx.climbx.common.exception.InvalidTokenException;
 import com.github.benmanes.caffeine.cache.Cache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +21,7 @@ public class RefreshTokenBlacklistService {
      */
     public void validateTokenNotBlacklisted(String refreshToken) {
         if (refreshToken == null || refreshToken.trim().isEmpty()) {
+            log.warn("empty refresh token 사용 시도");
             throw new InvalidTokenException("refresh token is empty");
         }
 
@@ -43,6 +44,7 @@ public class RefreshTokenBlacklistService {
         }
 
         refreshTokenBlacklist.put(refreshToken, true);
+
         log.debug("리프레시 토큰을 블랙리스트에 추가: {}",
             refreshToken.substring(0, Math.min(refreshToken.length(), 20)) + "...");
     }

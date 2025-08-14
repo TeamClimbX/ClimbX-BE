@@ -1,11 +1,13 @@
 package com.climbx.climbx.gym;
 
+import com.climbx.climbx.common.dto.ApiResponseDto;
 import com.climbx.climbx.gym.dto.GymInfoResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.DecimalMax;
@@ -25,12 +27,12 @@ public interface GymApiDocumentation {
         description = "클라이밍장 ID를 사용하여 특정 클라이밍장의 상세 정보를 조회합니다."
     )
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        @ApiResponse(
             responseCode = "200",
             description = "클라이밍장 정보 조회 성공",
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = com.climbx.climbx.common.response.ApiResponse.class),
+                schema = @Schema(implementation = ApiResponseDto.class),
                 examples = @ExampleObject(
                     name = "성공 응답",
                     value = """
@@ -47,19 +49,23 @@ public interface GymApiDocumentation {
                             "longitude": 126.9780,
                             "address": "서울시 강남구 테헤란로 123",
                             "phoneNumber": "02-1234-5678",
-                            "map2DUrl": "https://example.com/map/gym1"
+                            "baseMapUrl": "https://cdn-url/2d-map/1/base-images/1-base.png",
+                            "overlayMapUrls": [
+                                "https://cdn-url/2d-map/1/overlay-images/1-사과.jpeg",
+                                "https://cdn-url/2d-map/1/overlay-images/1-배1.png"
+                            ]
                           }
                         }
                         """
                 )
             )
         ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        @ApiResponse(
             responseCode = "400",
             description = "잘못된 클라이밍장 ID",
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = com.climbx.climbx.common.response.ApiResponse.class),
+                schema = @Schema(implementation = ApiResponseDto.class),
                 examples = @ExampleObject(
                     name = "잘못된 요청",
                     value = """
@@ -75,12 +81,12 @@ public interface GymApiDocumentation {
                 )
             )
         ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        @ApiResponse(
             responseCode = "404",
             description = "클라이밍장을 찾을 수 없음",
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = com.climbx.climbx.common.response.ApiResponse.class),
+                schema = @Schema(implementation = ApiResponseDto.class),
                 examples = @ExampleObject(
                     name = "클라이밍장 없음",
                     value = """
@@ -123,12 +129,12 @@ public interface GymApiDocumentation {
             """
     )
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        @ApiResponse(
             responseCode = "200",
             description = "클라이밍장 목록 조회 성공",
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = com.climbx.climbx.common.response.ApiResponse.class),
+                schema = @Schema(implementation = ApiResponseDto.class),
                 examples = @ExampleObject(
                     name = "키워드 기반 클라이밍장 목록",
                     value = """
@@ -146,7 +152,11 @@ public interface GymApiDocumentation {
                               "longitude": 126.9780,
                               "address": "서울시 강남구 테헤란로 123",
                               "phoneNumber": "02-1234-5678",
-                              "map2DUrl": "https://example.com/map/gym1"
+                              "baseMapUrl": "https://cdn-url/2d-map/1/base-images/1-base.png",
+                              "overlayMapUrls": [
+                                  "https://cdn-url/2d-map/1/overlay-images/1-사과.jpeg",
+                                  "https://cdn-url/2d-map/1/overlay-images/1-배1.png"
+                              ]
                             },
                             {
                               "gymId": 2,
@@ -155,7 +165,11 @@ public interface GymApiDocumentation {
                               "longitude": 127.0320,
                               "address": "서울시 서초구 강남대로 456",
                               "phoneNumber": "02-9876-5432",
-                              "map2DUrl": "https://example.com/map/gym2"
+                              "baseMapUrl": "https://cdn-url/2d-map/1/base-images/1-base.png",
+                              "overlayMapUrls": [
+                                  "https://cdn-url/2d-map/1/overlay-images/1-사과.jpeg",
+                                  "https://cdn-url/2d-map/1/overlay-images/1-배1.png"
+                              ]
                             }
                           ]
                         }
@@ -163,12 +177,12 @@ public interface GymApiDocumentation {
                 )
             )
         ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        @ApiResponse(
             responseCode = "400",
             description = "잘못된 요청",
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = com.climbx.climbx.common.response.ApiResponse.class),
+                schema = @Schema(implementation = ApiResponseDto.class),
                 examples = @ExampleObject(
                     name = "잘못된 요청",
                     value = """
@@ -209,12 +223,12 @@ public interface GymApiDocumentation {
             """
     )
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        @ApiResponse(
             responseCode = "200",
             description = "거리 기반 클라이밍장 목록 조회 성공",
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = com.climbx.climbx.common.response.ApiResponse.class),
+                schema = @Schema(implementation = ApiResponseDto.class),
                 examples = @ExampleObject(
                     name = "거리순 클라이밍장 목록",
                     value = """
@@ -232,7 +246,11 @@ public interface GymApiDocumentation {
                               "longitude": 126.9780,
                               "address": "서울시 강남구 테헤란로 123",
                               "phoneNumber": "02-1234-5678",
-                              "map2DUrl": "https://example.com/map/gym1"
+                              "baseMapUrl": "https://cdn-url/2d-map/1/base-images/1-base.png",
+                              "overlayMapUrls": [
+                                  "https://cdn-url/2d-map/1/overlay-images/1-사과.jpeg",
+                                  "https://cdn-url/2d-map/1/overlay-images/1-배1.png"
+                              ]
                             },
                             {
                               "gymId": 3,
@@ -241,7 +259,11 @@ public interface GymApiDocumentation {
                               "longitude": 127.0396,
                               "address": "서울시 강남구 역삼로 789",
                               "phoneNumber": "02-5555-1234",
-                              "map2DUrl": "https://example.com/map/gym3"
+                              "baseMapUrl": "https://cdn-url/2d-map/1/base-images/1-base.png",
+                              "overlayMapUrls": [
+                                  "https://cdn-url/2d-map/1/overlay-images/1-사과.jpeg",
+                                  "https://cdn-url/2d-map/1/overlay-images/1-배1.png"
+                              ]
                             }
                           ]
                         }
@@ -249,12 +271,12 @@ public interface GymApiDocumentation {
                 )
             )
         ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        @ApiResponse(
             responseCode = "400",
             description = "잘못된 위도 또는 경도",
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = com.climbx.climbx.common.response.ApiResponse.class),
+                schema = @Schema(implementation = ApiResponseDto.class),
                 examples = @ExampleObject(
                     name = "잘못된 위치 정보",
                     value = """

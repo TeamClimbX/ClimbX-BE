@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
+    <encoder>
+      <pattern>
+        %d{yyyy-MM-dd HH:mm:ss.SSS} %clr([%X{traceId:-NO-TRACE-ID}]){magenta} %clr([%thread]){blue} %clr(%-5level) %clr(%logger{36}){cyan} - %msg%n
+      </pattern>
+    </encoder>
+  </appender>
+
+  <conversionRule conversionWord="clr"
+    converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
+
+  <!-- Console Appender -->
+  <root level="${LOG_LEVEL}">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+
+  <springProperty defaultValue="INFO" name="LOG_LEVEL" scope="context" source="logging.level.root"/>
+</configuration>

@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
+import com.climbx.climbx.auth.enums.OAuth2ProviderType;
 import com.climbx.climbx.auth.provider.exception.InvalidNonceException;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
@@ -15,6 +16,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -44,7 +48,7 @@ class NonceServiceTest {
             given(usedNonces.getIfPresent(newNonce)).willReturn(null);
 
             // when
-            nonceService.validateAndUseNonce(newNonce);
+            nonceService.validateAndUseNonce(newNonce, OAuth2ProviderType.KAKAO);
 
             // then
             then(usedNonces).should().getIfPresent(newNonce);
@@ -59,40 +63,22 @@ class NonceServiceTest {
             given(usedNonces.getIfPresent(usedNonce)).willReturn(true);
 
             // when & then
-            assertThatThrownBy(() -> nonceService.validateAndUseNonce(usedNonce))
+            assertThatThrownBy(
+                () -> nonceService.validateAndUseNonce(usedNonce, OAuth2ProviderType.KAKAO))
                 .isInstanceOf(InvalidNonceException.class);
 
             then(usedNonces).should().getIfPresent(usedNonce);
             then(usedNonces).should(never()).put(anyString(), any(Boolean.class));
         }
 
-        @Test
-        @DisplayName("null nonce로 검증 시 IllegalArgumentException을 던진다")
-        void shouldThrowIllegalArgumentExceptionWhenNonceIsNull() {
+        @ParameterizedTest
+        @NullSource
+        @ValueSource(strings = {"", "   "})
+        @DisplayName("null, 빈 문자열, 공백만 있는 nonce로 검증 시 IllegalArgumentException을 던진다")
+        void shouldThrowIllegalArgumentExceptionWhenNonceIsInvalid(String nonce) {
             // when & then
-            assertThatThrownBy(() -> nonceService.validateAndUseNonce(null))
-                .isInstanceOf(InvalidNonceException.class);
-
-            then(usedNonces).should(never()).getIfPresent(anyString());
-            then(usedNonces).should(never()).put(anyString(), any(Boolean.class));
-        }
-
-        @Test
-        @DisplayName("빈 문자열 nonce로 검증 시 IllegalArgumentException을 던진다")
-        void shouldThrowIllegalArgumentExceptionWhenNonceIsEmpty() {
-            // when & then
-            assertThatThrownBy(() -> nonceService.validateAndUseNonce(""))
-                .isInstanceOf(InvalidNonceException.class);
-
-            then(usedNonces).should(never()).getIfPresent(anyString());
-            then(usedNonces).should(never()).put(anyString(), any(Boolean.class));
-        }
-
-        @Test
-        @DisplayName("공백만 있는 nonce로 검증 시 IllegalArgumentException을 던진다")
-        void shouldThrowIllegalArgumentExceptionWhenNonceIsBlank() {
-            // when & then
-            assertThatThrownBy(() -> nonceService.validateAndUseNonce("   "))
+            assertThatThrownBy(
+                () -> nonceService.validateAndUseNonce(nonce, OAuth2ProviderType.KAKAO))
                 .isInstanceOf(InvalidNonceException.class);
 
             then(usedNonces).should(never()).getIfPresent(anyString());
@@ -109,13 +95,14 @@ class NonceServiceTest {
             given(usedNonces.getIfPresent(nonce)).willReturn(null);
 
             // when - 첫 번째 사용은 성공
-            nonceService.validateAndUseNonce(nonce);
+            nonceService.validateAndUseNonce(nonce, OAuth2ProviderType.KAKAO);
 
             // given - 두 번째 호출 시 - 이미 사용된 nonce
             given(usedNonces.getIfPresent(nonce)).willReturn(true);
 
             // when & then - 두 번째 사용은 예외 발생
-            assertThatThrownBy(() -> nonceService.validateAndUseNonce(nonce))
+            assertThatThrownBy(
+                () -> nonceService.validateAndUseNonce(nonce, OAuth2ProviderType.KAKAO))
                 .isInstanceOf(InvalidNonceException.class);
 
             then(usedNonces).should().put(nonce, true);

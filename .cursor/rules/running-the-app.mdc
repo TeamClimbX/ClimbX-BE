@@ -12,12 +12,29 @@ description: "How to run the application and tests."
 - IDE (IntelliJ IDEA 권장)
 
 ### 환경 변수 설정
-개발 환경에서 필요한 환경 변수들:
+개발 환경에서 필수로 설정해야 하는 환경 변수들:
 ```bash
 # JWT 설정
-JWT_SECRET=your-jwt-secret-key-here
-JWT_EXPIRATION=86400000
+JWT_SECRET=...
+
+# 데이터베이스 설정
+DB_USER=...
+DB_PASSWORD=...
+
+# AWS S3 설정 
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+
+# OAuth2 설정
+KAKAO_NATIVE_APP_KEY=...
+GOOGLE_ANDROID_APP_KEY=...
+GOOGLE_IOS_APP_KEY=...
+APPLE_ANDROID_APP_KEY=...
+APPLE_IOS_APP_KEY=...
 ```
+
+> **참고**: 위에 명시되지 않은 다른 환경 변수들은 기본값을 사용합니다.
+> AWS_S3_BUCKET_NAME, AWS_REGION 등은 애플리케이션 설정에서 기본값이 적용됩니다.
 
 ## 데이터베이스 설정
 
@@ -38,8 +55,14 @@ docker-compose down
 ```
 
 ### 2. 로컬 MySQL 사용시
-- MySQL 9.3
+- MySQL 8.0 이상
 - 데이터베이스 생성: `CREATE DATABASE climbx_dev;`
+- 사용자 생성 및 권한 부여:
+  ```sql
+  CREATE USER 'climbx'@'localhost' IDENTIFIED BY 'password';
+  GRANT ALL PRIVILEGES ON climbx_dev.* TO 'climbx'@'localhost';
+  FLUSH PRIVILEGES;
+  ```
 - `application-db-dev.yml`에서 연결 정보 수정
 
 ### 3. 데이터베이스 스키마 확인
@@ -82,8 +105,23 @@ java -jar build/libs/climbx-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
 
 ### 실행 확인
 - 애플리케이션 시작 후 `http://localhost:8080` 접속
-- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
-- H2 Console (테스트시): `http://localhost:8080/h2-console`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- API 문서: `http://localhost:8080/v3/api-docs`
+
+### 주요 API 엔드포인트 확인
+```bash
+# 헬스체크
+curl http://localhost:8080/actuator/health
+
+# 체육관 목록 조회
+curl http://localhost:8080/api/gyms/search
+
+# 랭킹 조회
+curl http://localhost:8080/api/ranking/users?criteria=rating
+
+# 제출 목록 조회
+curl http://localhost:8080/api/submissions
+```
 
 ## 테스트 실행
 
@@ -121,6 +159,12 @@ java -jar build/libs/climbx-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
 
 # 보안 테스트만 실행
 ./gradlew test --tests "*SecurityTest"
+
+# 랭킹 관련 테스트만 실행
+./gradlew test --tests "*RankingTest"
+
+# 제출 관련 테스트만 실행
+./gradlew test --tests "*SubmissionTest"
 ```
 
 ### 4. IDE에서 테스트 실행
@@ -139,13 +183,27 @@ java -jar build/libs/climbx-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
 open build/reports/checkstyle/main.html
 ```
 
-### 2. 빌드 검증
+### 2. 코드 커버리지 확인 (JaCoCo)
+```bash
+# 테스트 커버리지 생성
+./gradlew jacocoTestReport
+
+# 커버리지 리포트 확인
+open build/reports/jacoco/test/html/index.html
+
+# 커버리지 검증
+./gradlew jacocoTestCoverageVerification
+```
+### 3. 빌드 검증
 ```bash
 # 전체 빌드 (테스트 + 코드 품질 검사 포함)
 ./gradlew build
 
 # 빌드 캐시 정리
 ./gradlew clean build
+
+# 의존성 업데이트 확인
+./gradlew dependencyUpdates
 ```
 
 ## 개발 도구 및 유틸리티
@@ -170,9 +228,15 @@ grep "DEBUG" logs/application.log
 ```
 
 ### 3. 프로파일별 설정
-- `dev`: 개발 환경 (MySQL, 로그 레벨 DEBUG)
-- `test`: 테스트 환경 (MySQL, 로그 레벨 DEBUG)
+- `dev`: 개발 환경 (MySQL, 로그 레벨 DEBUG, AWS S3 연동)
+- `test`: 테스트 환경 (H2, 로그 레벨 INFO)
 - `prod`: 운영 환경 (추후 작성 필요)
+
+각 프로파일별 설정 파일:
+- `application-dev.yml`: 개발 환경 설정
+- `application-db-dev.yml`: 개발 DB 설정  
+- `application-auth-dev.yml`: OAuth2 설정
+- `application-aws-dev.yml`: AWS S3 설정
 
 ### 4. 데이터베이스 마이그레이션
 ```bash
@@ -183,60 +247,48 @@ grep "DEBUG" logs/application.log
 # Flyway 또는 Liquibase 도구 사용 권장
 ```
 
-## 문제 해결
+## 새로운 기능 추가 시 체크리스트
 
-### 일반적인 문제들
+### 1. 개발 전 확인사항
+- [ ] 새 기능에 필요한 의존성 추가 (`build.gradle`)
+- [ ] 환경 변수 설정 (`application-*.yml`)
+- [ ] 데이터베이스 스키마 변경사항 확인
 
-#### 1. 포트 충돌 (8080 포트가 이미 사용 중)
-```bash
-# 포트 사용 중인 프로세스 확인 (Mac/Linux)
-lsof -i :8080
+### 2. 개발 중 확인사항  
+- [ ] 코드 스타일 가이드 준수 (`./gradlew checkstyleMain`)
+- [ ] 단위 테스트 작성 및 실행
+- [ ] API 문서화 (Swagger) 작성
 
-# 프로세스 종료
-kill -9 [PID]
+### 3. 개발 완료 후 확인사항
+- [ ] 전체 테스트 통과 (`./gradlew test`)
+- [ ] 코드 커버리지 확인 (`./gradlew jacocoTestReport`)
+- [ ] 통합 테스트 실행
+- [ ] Swagger UI에서 API 동작 확인
 
-# 또는 다른 포트 사용
-./gradlew bootRun --args='--server.port=8081'
+## 디버깅 및 트러블슈팅
+
+### 1. 애플리케이션 로그 레벨 조정
+```yaml
+# application-dev.yml에서 로그 레벨 변경
+logging:
+  level:
+    com.climbx: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
 ```
 
-#### 2. 데이터베이스 연결 실패
-```bash
-# Docker MySQL 컨테이너 상태 확인
-docker-compose ps
-
-# MySQL 컨테이너 재시작
-docker-compose restart mysql
-
-# 연결 테스트
-docker-compose exec mysql mysql -u root -p climbx_dev
+### 2. 데이터베이스 쿼리 디버깅
+```yaml
+# JPA 쿼리 로깅 활성화
+spring:
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
 ```
 
-#### 3. 메모리 부족 오류
-```bash
-# JVM 힙 메모리 늘리기
-export JAVA_OPTS="-Xmx2g -Xms1g"
-./gradlew bootRun
-
-# 또는 Gradle JVM 메모리 설정
-export GRADLE_OPTS="-Xmx2g"
-```
-
-#### 4. 빌드 실패
-```bash
-# 의존성 다시 다운로드
-./gradlew clean build --refresh-dependencies
-
-# Gradle 래퍼 업데이트
-./gradlew wrapper --gradle-version=8.5
-```
-
-### 성능 모니터링
-- `TimeTrackingInterceptor`를 통한 API 응답 시간 측정
-- 로그에서 `[TIMER]` 태그로 성능 정보 확인
-- 필요시 Spring Boot Actuator 엔드포인트 활성화
-
-### 개발 팁
-- IDE의 Live Reload 기능 활용
-- Swagger UI로 API 테스트
-- H2 Console로 테스트 데이터 확인
-- Git Hook으로 커밋 전 테스트 자동 실행
+### 3. 프로파일별 문제 해결
+- **개발 환경**: MySQL 연결 문제 → Docker 컨테이너 상태 확인
+- **테스트 환경**: H2 메모리 DB → 테스트 간 데이터 초기화 확인

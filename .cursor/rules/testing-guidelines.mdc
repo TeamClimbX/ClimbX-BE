@@ -1,7 +1,6 @@
 ---
 description: "Testing guidelines and best practices for unit and integration tests, including BDD-style testing with Mockito. Enforces use of then() instead of verify() for BDD consistency."
 globs: ["**/*Test.java", "**/*Tests.java", "src/test/**/*.java"]
-alwaysApply: true
 ---
 
 # Testing Guidelines
@@ -79,28 +78,28 @@ class UserServiceTest {
         @DisplayName("유효한 요청으로 사용자를 성공적으로 생성한다")
         void shouldCreateUserWithValidRequest() {
             // given
-            UserCreateRequestDto request = UserCreateRequestDto.builder()
+            UserCreateRequestDto request = new UserCreateRequestDto(
+                "test@example.com",
+                "테스트유저"
+            );
+            
+            UserAccountEntity savedUser = UserAccountEntity.builder()
+                    .userId(1L)
                     .email("test@example.com")
                     .nickname("테스트유저")
                     .build();
             
-            UserEntity savedUser = UserEntity.builder()
-                    .id(1L)
-                    .email("test@example.com")
-                    .nickname("테스트유저")
-                    .build();
-            
-            given(userRepository.save(any(UserEntity.class))).willReturn(savedUser);
+            given(userRepository.save(any(UserAccountEntity.class))).willReturn(savedUser);
             
             // when
             UserResponseDto result = userService.createUser(request);
             
             // then
-            assertThat(result.id()).isEqualTo(1L);
+            assertThat(result.userId()).isEqualTo(1L);
             assertThat(result.email()).isEqualTo("test@example.com");
             assertThat(result.nickname()).isEqualTo("테스트유저");
             
-            then(userRepository).should().save(any(UserEntity.class));
+            then(userRepository).should().save(any(UserAccountEntity.class));
             then(emailService).should().sendWelcomeEmail(savedUser.email());
         }
         
@@ -108,18 +107,18 @@ class UserServiceTest {
         @DisplayName("중복된 이메일로 사용자 생성 시 예외를 던진다")
         void shouldThrowExceptionWhenEmailAlreadyExists() {
             // given
-            UserCreateRequestDto request = UserCreateRequestDto.builder()
-                    .email("existing@example.com")
-                    .build();
+            UserCreateRequestDto request = new UserCreateRequestDto(
+                "existing@example.com",
+                "테스트유저"
+            );
             
             given(userRepository.existsByEmail("existing@example.com")).willReturn(true);
             
             // when & then
             assertThatThrownBy(() -> userService.createUser(request))
-                    .isInstanceOf(DuplicateEmailException.class)
-                    .hasMessage("이미 사용 중인 이메일입니다: existing@example.com");
+                    .isInstanceOf(DuplicateEmailException.class);
                     
-            then(userRepository).should(never()).save(any(UserEntity.class));
+            then(userRepository).should(never()).save(any(UserAccountEntity.class));
         }
     }
 }
@@ -155,33 +154,51 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 ### 4. 테스트 데이터 생성 패턴
 
-#### Fixture 클래스 활용
+#### Fixture 클래스 활용 (현재 프로젝트 패턴)
 ```java
 // UserFixture.java
 public class UserFixture {
     
-    public static UserEntity createUser() {
-        return UserEntity.builder()
-                .id(1L)
-                .email("test@example.com")
-                .nickname("테스트유저")
-                .role(RoleType.USER)
-                .build();
+    private static final String DEFAULT_NICKNAME = "테스트유저";
+    private static final String DEFAULT_STATUS_MESSAGE = "클라이밍 중!";
+    private static final String DEFAULT_PROFILE_IMAGE_URL = "https://example.com/profile.jpg";
+    
+    public static UserAccountEntity createUserAccountEntity(Long userId) {
+        return createUserAccountEntity(userId, DEFAULT_NICKNAME);
     }
     
-    public static UserEntity createUser(String email, String nickname) {
-        return UserEntity.builder()
-                .id(1L)
-                .email(email)
+    public static UserAccountEntity createUserAccountEntity(Long userId, String nickname) {
+        return UserAccountEntity.builder()
+                .userId(userId)
                 .nickname(nickname)
+                .statusMessage(DEFAULT_STATUS_MESSAGE)
+                .profileImageUrl(DEFAULT_PROFILE_IMAGE_URL)
                 .role(RoleType.USER)
                 .build();
     }
     
-    public static UserCreateRequestDto createUserRequest() {
-        return UserCreateRequestDto.builder()
-                .email("test@example.com")
-                .nickname("테스트유저")
+    public static UserStatEntity createUserStatEntity(Long userId) {
+        return UserStatEntity.builder()
+                .userId(userId)
+                .rating(1500)
+                .currentStreak(10)
+                .longestStreak(20)
+                .solvedProblemsCount(50)
+                .rivalCount(5)
+                .build();
+    }
+}
+
+// UserAuthFixture.java
+public class UserAuthFixture {
+    
+    public static UserAuthEntity createUserAuth(UserAccountEntity userAccount) {
+        return UserAuthEntity.builder()
+                .userAccountEntity(userAccount)
+                .provider(OAuth2ProviderType.KAKAO)
+                .providerId("kakao_123456")
+                .providerEmail("test@kakao.com")
+                .isPrimary(true)
                 .build();
     }
 }
@@ -192,14 +209,17 @@ public class UserFixture {
 @Test
 void shouldFindUserById() {
     // given
-    UserEntity user = UserFixture.createUser();
-    given(userRepository.findById(1L)).willReturn(Optional.of(user));
+    UserAccountEntity user = UserFixture.createUserAccountEntity(1L);
+    given(userRepository.findByUserId(1L)).willReturn(Optional.of(user));
     
     // when
     UserResponseDto result = userService.findById(1L);
     
     // then
-    assertThat(result.email()).isEqualTo(user.email());
+    assertThat(result.userId()).isEqualTo(1L);
+    assertThat(result.nickname()).isEqualTo(user.nickname());
+    
+    then(userRepository).should().findByUserId(1L);
 }
 ```
 
@@ -220,16 +240,21 @@ class UserControllerTest {
     private UserService userService;
     
     @Test
-    @DisplayName("GET /api/users/{id} - 사용자 조회 성공")
-    void shouldGetUserById() throws Exception {
+    @DisplayName("GET /api/users/{nickname} - 사용자 조회 성공")
+    void shouldGetUserByNickname() throws Exception {
         // given
-        UserResponseDto response = UserResponseDto.builder()
-                .id(1L)
-                .email("test@example.com")
-                .nickname("테스트유저")
+        UserProfileResponseDto response = UserProfileResponseDto.builder()
+                .nickname("testuser")
+                .statusMessage("클라이밍 중!")
+                .profileImageUrl(null)
+                .rating(1500)
+                .currentStreak(10)
+                .longestStreak(20)
+                .solvedProblemsCount(50)
+                .rivalCount(5)
                 .build();
         
-        given(userService.findById(1L)).willReturn(response);
+        given(userService.getUserByNickname("testuser")).willReturn(response);
         
         // when & then
         mockMvc.perform(get("/api/users/1")
@@ -249,31 +274,57 @@ class UserControllerTest {
 #### DataJpaTest 구조
 ```java
 @DataJpaTest
-@DisplayName("UserRepository 테스트")
-class UserRepositoryTest {
+@DisplayName("UserAccountRepository 테스트")
+class UserAccountRepositoryTest {
     
     @Autowired
     private TestEntityManager entityManager;
     
     @Autowired
-    private UserRepository userRepository;
+    private UserAccountRepository userAccountRepository;
     
     @Test
-    @DisplayName("이메일로 사용자를 조회한다")
-    void shouldFindUserByEmail() {
+    @DisplayName("닉네임으로 사용자를 조회한다")
+    void shouldFindUserByNickname() {
         // given
-        UserEntity user = UserEntity.builder()
-                .email("test@example.com")
-                .nickname("테스트유저")
+        UserAccountEntity user = UserAccountEntity.builder()
+                .userId(1L)
+                .nickname("testuser")
+                .statusMessage("클라이밍 중!")
+                .profileImageUrl(null)
+                .role(RoleType.USER)
                 .build();
         entityManager.persistAndFlush(user);
         
         // when
-        Optional<UserEntity> result = userRepository.findByEmail("test@example.com");
+        Optional<UserAccountEntity> result = userAccountRepository.findByNickname("testuser");
         
         // then
         assertThat(result).isPresent();
-        assertThat(result.get().email()).isEqualTo("test@example.com");
+        assertThat(result.get().nickname()).isEqualTo("testuser");
+        assertThat(result.get().role()).isEqualTo(RoleType.USER);
+    }
+    
+    @Test
+    @DisplayName("역할별 사용자 목록을 조회한다")
+    void shouldFindUsersByRole() {
+        // given
+        UserAccountEntity user1 = UserFixture.createUserAccountEntity(1L, "user1");
+        UserAccountEntity user2 = UserFixture.createUserAccountEntity(2L, "user2");
+        UserAccountEntity admin = UserFixture.createAdminUserAccountEntity(3L, "admin");
+        
+        entityManager.persist(user1);
+        entityManager.persist(user2);
+        entityManager.persist(admin);
+        entityManager.flush();
+        
+        // when
+        List<UserAccountEntity> users = userAccountRepository.findByRole(RoleType.USER);
+        
+        // then
+        assertThat(users).hasSize(2);
+        assertThat(users).extracting(UserAccountEntity::nickname)
+                .containsExactlyInAnyOrder("user1", "user2");
     }
 }
 ```
@@ -352,3 +403,23 @@ void shouldThrowExceptionWhenEmailFormatInvalid() {
 - 핵심 비즈니스 로직 100% 커버리지 목표
 - Happy path와 Edge case 모두 테스트
 - 예외 상황 테스트 필수
+
+## 테스트 작성 체크리스트
+
+### Unit Test 체크리스트
+- [ ] BDD 스타일 사용 (`given()`, `then()`)
+- [ ] `@Nested` 클래스로 테스트 그룹화
+- [ ] 테스트 메서드명은 `should...()` 패턴
+- [ ] `@DisplayName`으로 한글 설명 추가
+- [ ] Fixture 클래스 활용으로 테스트 데이터 생성
+- [ ] 예외 테스트는 `assertThatThrownBy()` 사용
+- [ ] Mock 검증은 `then().should()` 사용
+
+### Integration Test 체크리스트
+- [ ] `@WebMvcTest` 또는 `@DataJpaTest` 사용
+- [ ] API 응답 형식 검증 (`httpStatus`, `statusMessage`, `data`)
+- [ ] 실제 데이터베이스 동작 검증 (Repository 테스트)
+- [ ] 다양한 HTTP 상태 코드 테스트
+- [ ] 인증이 필요한 API의 경우 인증 테스트 포함
+
+이 가이드라인을 따르면 일관성 있고 유지보수하기 쉬운 테스트 코드를 작성할 수 있습니다.

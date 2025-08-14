@@ -9,4 +9,11 @@ public record TokenGenerationResponseDto(
     String refreshToken
 ) {
 
+    public static TokenGenerationResponseDto from(AccessTokenResponseDto accessToken,
+        String refreshToken) {
+        return TokenGenerationResponseDto.builder()
+            .accessToken(accessToken)
+            .refreshToken(refreshToken)
+            .build();
+    }
 }

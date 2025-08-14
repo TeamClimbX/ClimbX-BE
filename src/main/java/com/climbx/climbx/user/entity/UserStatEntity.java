@@ -9,6 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -16,9 +17,11 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "user_stats")
+@SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 @AllArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 @Getter
@@ -28,6 +31,7 @@ public class UserStatEntity extends BaseTimeEntity {
 
     @Id
     @Column(name = "user_id", updatable = false, nullable = false)
+    @Min(1L)
     private Long userId; // 사용자 ID, UserAccountEntity와 동일한 ID 사용
 
     @MapsId
@@ -39,29 +43,68 @@ public class UserStatEntity extends BaseTimeEntity {
     @Column(name = "rating", nullable = false)
     @NotNull
     @Min(0)
-    private Long rating = 0L; // 레이팅, 기본값은 0
+    @Max(3100)
+    private Integer rating = 0; // 레이팅, 기본값은 0
+
+    @Builder.Default
+    @Column(name = "top_problem_rating", nullable = false)
+    @NotNull
+    @Min(0)
+    private Integer topProblemRating = 0; // 상위 50문제 레이팅 합
 
     @Builder.Default
     @Column(name = "current_streak", nullable = false)
     @NotNull
     @Min(0)
-    private Long currentStreak = 0L; // 현재 출석일, 기본값은 0
+    private Integer currentStreak = 0; // 현재 출석일, 기본값은 0
 
     @Builder.Default
     @Column(name = "longest_streak", nullable = false)
     @NotNull
     @Min(0)
-    private Long longestStreak = 0L; // 가장 긴 연속 출석일, 기본값은 0
+    private Integer longestStreak = 0; // 가장 긴 연속 출석일, 기본값은 0
 
     @Builder.Default
-    @Column(name = "solved_problems_count", nullable = false)
+    @Column(name = "solved_count", nullable = false)
     @NotNull
     @Min(0)
-    private Long solvedProblemsCount = 0L; // 해결한 문제 수, 기본값은 0
+    private Integer solvedCount = 0; // 해결한 문제 수, 기본값은 0
+
+    @Builder.Default
+    @Column(name = "submission_count", nullable = false)
+    @NotNull
+    @Min(0)
+    private Integer submissionCount = 0; // 제출한 문제 수, 기본값은 0
+
+    @Builder.Default
+    @Column(name = "contribution_count", nullable = false)
+    @NotNull
+    @Min(0)
+    private Integer contributionCount = 0; // 기여한 문제 수, 기본값은 0
 
     @Builder.Default
     @Column(name = "rival_count", nullable = false)
     @NotNull
     @Min(0)
-    private Long rivalCount = 0L; // 라이벌 수, 기본값은 0
+    private Integer rivalCount = 0; // 라이벌 수, 기본값은 0
+
+    public void incrementSubmissionCount() {
+        this.submissionCount++;
+    }
+
+    public void incrementSolvedProblemsCount() {
+        this.solvedCount++;
+    }
+
+    public void incrementContributionCount() {
+        this.contributionCount++;
+    }
+
+    public void setRating(Integer rating) {
+        this.rating = rating;
+    }
+
+    public void setTopProblemRating(Integer topProblemRating) {
+        this.topProblemRating = topProblemRating;
+    }
 }

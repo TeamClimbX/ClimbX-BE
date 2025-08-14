@@ -6,7 +6,7 @@ import lombok.Builder;
 public record AccessTokenResponseDto(
 
     String accessToken, // JWT token
-    long expiresIn // 토큰 만료 시간 (초 단위)
+    Long expiresIn // 토큰 만료 시간 (초 단위)
 ) {
 
 }

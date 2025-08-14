@@ -1,7 +1,7 @@
 package com.climbx.climbx.gym.exception;
 
-import com.climbx.climbx.common.error.BusinessException;
-import com.climbx.climbx.common.error.ErrorCode;
+import com.climbx.climbx.common.enums.ErrorCode;
+import com.climbx.climbx.common.exception.BusinessException;
 
 public class GymNotFoundException extends BusinessException {
 

@@ -8,13 +8,16 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
-import com.climbx.climbx.common.security.exception.InvalidTokenException;
+import com.climbx.climbx.common.exception.InvalidTokenException;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -65,34 +68,14 @@ class RefreshTokenBlacklistServiceTest {
             then(refreshTokenBlacklist).should().getIfPresent(blacklistedToken);
         }
 
-        @Test
-        @DisplayName("null 토큰으로 검증 시 InvalidTokenException을 던진다")
-        void shouldThrowIllegalArgumentExceptionWhenTokenIsNull() {
-            // when & then
-            assertThatThrownBy(() -> refreshTokenBlacklistService.validateTokenNotBlacklisted(null))
-                .isInstanceOf(InvalidTokenException.class)
-                .hasMessage("유효하지 않은 토큰입니다.");
-
-            then(refreshTokenBlacklist).should(never()).getIfPresent(anyString());
-        }
-
-        @Test
-        @DisplayName("빈 문자열 토큰으로 검증 시 InvalidTokenException을 던진다")
-        void shouldThrowIllegalArgumentExceptionWhenTokenIsEmpty() {
-            // when & then
-            assertThatThrownBy(() -> refreshTokenBlacklistService.validateTokenNotBlacklisted(""))
-                .isInstanceOf(InvalidTokenException.class)
-                .hasMessage("유효하지 않은 토큰입니다.");
-
-            then(refreshTokenBlacklist).should(never()).getIfPresent(anyString());
-        }
-
-        @Test
-        @DisplayName("공백만 있는 토큰으로 검증 시 InvalidTokenException을 던진다")
-        void shouldThrowIllegalArgumentExceptionWhenTokenIsBlank() {
+        @ParameterizedTest
+        @NullSource
+        @ValueSource(strings = {"", "   "})
+        @DisplayName("null, 빈 문자열, 공백만 있는 토큰으로 검증 시 InvalidTokenException을 던진다")
+        void shouldThrowInvalidTokenExceptionWhenTokenIsInvalid(String token) {
             // when & then
             assertThatThrownBy(
-                () -> refreshTokenBlacklistService.validateTokenNotBlacklisted("   "))
+                () -> refreshTokenBlacklistService.validateTokenNotBlacklisted(token))
                 .isInstanceOf(InvalidTokenException.class)
                 .hasMessage("유효하지 않은 토큰입니다.");
 
@@ -117,31 +100,13 @@ class RefreshTokenBlacklistServiceTest {
             then(refreshTokenBlacklist).should().put(token, true);
         }
 
-        @Test
-        @DisplayName("null 토큰 추가 시 캐시에 추가하지 않는다")
-        void shouldNotAddNullTokenToBlacklist() {
+        @ParameterizedTest
+        @NullSource
+        @ValueSource(strings = {"", "   "})
+        @DisplayName("null, 빈 문자열, 공백만 있는 토큰 추가 시 캐시에 추가하지 않는다")
+        void shouldNotAddInvalidTokenToBlacklist(String token) {
             // when
-            refreshTokenBlacklistService.addToBlacklist(null);
-
-            // then
-            then(refreshTokenBlacklist).should(never()).put(anyString(), any(Boolean.class));
-        }
-
-        @Test
-        @DisplayName("빈 문자열 토큰 추가 시 캐시에 추가하지 않는다")
-        void shouldNotAddEmptyTokenToBlacklist() {
-            // when
-            refreshTokenBlacklistService.addToBlacklist("");
-
-            // then
-            then(refreshTokenBlacklist).should(never()).put(anyString(), any(Boolean.class));
-        }
-
-        @Test
-        @DisplayName("공백만 있는 토큰 추가 시 캐시에 추가하지 않는다")
-        void shouldNotAddBlankTokenToBlacklist() {
-            // when
-            refreshTokenBlacklistService.addToBlacklist("   ");
+            refreshTokenBlacklistService.addToBlacklist(token);
 
             // then
             then(refreshTokenBlacklist).should(never()).put(anyString(), any(Boolean.class));

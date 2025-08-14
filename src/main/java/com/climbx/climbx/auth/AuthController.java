@@ -4,20 +4,20 @@ import com.climbx.climbx.auth.dto.AccessTokenResponseDto;
 import com.climbx.climbx.auth.dto.CallbackRequestDto;
 import com.climbx.climbx.auth.dto.TokenGenerationResponseDto;
 import com.climbx.climbx.auth.dto.UserAuthResponseDto;
+import com.climbx.climbx.auth.enums.OAuth2ProviderType;
+import com.climbx.climbx.auth.service.AuthService;
 import com.climbx.climbx.common.annotation.SuccessStatus;
-import com.climbx.climbx.common.security.JwtContext;
 import jakarta.servlet.http.HttpServletResponse;
-import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,35 +27,28 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController implements AuthApiDocumentation {
 
+    private static final String REFRESH_TOKEN_HEADER = "Refresh-Token";
     private final AuthService authService;
-    private final JwtContext jwtContext;
 
     /**
      * provider의 인가 code를 받아 인증하고 토큰 발급
      */
     @Override
-    @PostMapping("/oauth2/{provider}/callback")
+    @PostMapping("/oauth2/{providerType}/callback")
     @SuccessStatus(value = HttpStatus.CREATED)
     public AccessTokenResponseDto handleCallback(
-        @PathVariable String provider,
+        @PathVariable OAuth2ProviderType providerType,
         @RequestBody CallbackRequestDto request,
         HttpServletResponse response
     ) {
-        log.info(
-            "{} OAuth2 콜백 처리 시작",
-            provider.toUpperCase()
-        );
+        log.info("{} OAuth2 콜백 처리 시작", providerType);
 
-        TokenGenerationResponseDto tokenResponse = authService.handleCallback(provider, request);
+        TokenGenerationResponseDto tokenResponse = authService
+            .handleCallback(providerType, request);
 
-        // 리프레시 토큰을 HTTP Only Cookie로 설정
-        ResponseCookie refreshTokenCookie = createRefreshTokenCookie(
-            tokenResponse.refreshToken(),
-            jwtContext.getRefreshTokenExpiration()
-        );
-        response.addHeader("Set-Cookie", refreshTokenCookie.toString());
+        response.setHeader(REFRESH_TOKEN_HEADER, tokenResponse.refreshToken());
 
-        log.info("{} OAuth2 콜백 처리 완료", provider.toUpperCase());
+        log.info("{} OAuth2 콜백 처리 완료", providerType);
 
         return tokenResponse.accessToken();
     }
@@ -67,19 +60,14 @@ public class AuthController implements AuthApiDocumentation {
     @PostMapping("/oauth2/refresh")
     @SuccessStatus(value = HttpStatus.CREATED)
     public AccessTokenResponseDto refreshAccessToken(
-        @CookieValue(value = "refreshToken", required = true) String refreshToken,
+        @RequestHeader(REFRESH_TOKEN_HEADER) String refreshToken,
         HttpServletResponse response
     ) {
         log.info("액세스 토큰 갱신 요청");
 
         TokenGenerationResponseDto refreshResponse = authService.refreshAccessToken(refreshToken);
 
-        // 새로운 리프레시 토큰을 HTTP Only Cookie로 설정
-        ResponseCookie refreshTokenCookie = createRefreshTokenCookie(
-            refreshResponse.refreshToken(),
-            jwtContext.getRefreshTokenExpiration()
-        );
-        response.addHeader("Set-Cookie", refreshTokenCookie.toString());
+        response.setHeader(REFRESH_TOKEN_HEADER, refreshResponse.refreshToken());
 
         log.info("액세스 토큰 갱신 완료");
         return refreshResponse.accessToken();
@@ -109,43 +97,31 @@ public class AuthController implements AuthApiDocumentation {
     @PostMapping("/signout")
     @SuccessStatus(value = HttpStatus.NO_CONTENT)
     public void signOut(
-        @CookieValue(value = "refreshToken", required = true) String refreshToken,
+        @RequestHeader(REFRESH_TOKEN_HEADER) String refreshToken,
         HttpServletResponse response
     ) {
         log.info("로그아웃 요청");
 
         authService.signOut(refreshToken);
 
-        // 리프레시 토큰 쿠키 삭제
-        ResponseCookie refreshTokenCookie = clearRefreshTokenCookie();
-        response.addHeader("Set-Cookie", refreshTokenCookie.toString());
-
         log.info("로그아웃 완료");
     }
 
     /**
-     * 리프레시 토큰 쿠키를 생성합니다.
+     * 회원 탈퇴를 처리합니다. 로그아웃 후 사용자 관련 데이터를 soft delete 처리합니다.
      */
-    private ResponseCookie createRefreshTokenCookie(String value, long expiresIn) {
-        return ResponseCookie.from("refreshToken", value)
-            .httpOnly(true)
-            .secure(false) // TODO: 프로덕션 환경에서는 true로 변경
-            .path("/api/auth/oauth2/refresh")
-            .maxAge(Duration.ofSeconds(expiresIn))
-            .sameSite("Strict")
-            .build();
-    }
+    @Override
+    @DeleteMapping("/unregister")
+    @SuccessStatus(value = HttpStatus.NO_CONTENT)
+    public void unregisterUser(
+        @AuthenticationPrincipal Long userId,
+        @RequestHeader(REFRESH_TOKEN_HEADER) String refreshToken,
+        HttpServletResponse response
+    ) {
+        log.info("회원 탈퇴 요청: userId={}", userId);
 
-    /**
-     * 리프레시 토큰 쿠키를 삭제합니다.
-     */
-    private ResponseCookie clearRefreshTokenCookie() {
-        return ResponseCookie.from("refreshToken", "")
-            .httpOnly(true)
-            .secure(false) // TODO: 프로덕션 환경에서는 true로 변경
-            .path("/api/auth/signout")
-            .maxAge(Duration.ZERO)
-            .sameSite("Strict")
-            .build();
+        authService.unregisterUser(userId, refreshToken);
+
+        log.info("회원 탈퇴 완료: userId={}", userId);
     }
 }

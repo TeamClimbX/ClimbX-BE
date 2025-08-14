@@ -45,25 +45,54 @@ GET /api/users/{nickname}/streak
 GET /api/users/{nickname}/history
 
 # 위치 기반 체육관 조회
-GET /api/gyms?latitude={lat}&longitude={lng}
+GET /api/gyms/nearby?latitude={lat}&longitude={lng}
+
+# 랭킹 조회
+GET /api/ranking/users?criteria={criteria}
+
+# 제출 관련
+GET /api/submissions
+POST /api/submissions
+GET /api/submissions/{videoId}
+PATCH /api/submissions/{videoId}
+GET /api/submissions/{videoId}/appeal
+POST /api/submissions/{videoId}/appeal
+
+# 비디오 관련
+GET /api/videos/{nickname}
+POST /api/videos/upload-url
+
+# 문제 관련
+GET /api/problems/spots
+GET /api/problems/spots/{spotId}
 ```
 
 ### 2. HTTP 메서드 사용법
 
 #### CRUD 매핑 (실제 구현)
 ```bash
+# Create (생성)
+POST /api/submissions            # 제출 생성
+POST /api/videos/upload-url      # 비디오 업로드 URL 생성
+POST /api/submissions/{videoId}/appeal  # 어필 생성
+
 # Read (조회)
-GET /api/users                    # 목록 조회 (검색 포함)
-GET /api/users/{nickname}         # 단일 조회
-GET /api/gyms/{gymId}            # 체육관 단일 조회
+GET /api/users                   # 목록 조회 (검색 포함)
+GET /api/users/{nickname}        # 단일 조회
+GET /api/gyms/{gymId}           # 체육관 단일 조회
+GET /api/ranking/users          # 랭킹 조회
+GET /api/submissions            # 제출 목록 조회
+GET /api/videos/{nickname}      # 사용자 비디오 목록
 
 # Update (수정)
-PUT /api/users/{nickname}         # 프로필 전체 수정
+PUT /api/users/{nickname}        # 프로필 전체 수정
+PATCH /api/submissions/{videoId} # 제출 취소
 
 # 특수 조회 패턴
 GET /api/users?search={keyword}   # 검색 쿼리
-GET /api/gyms?keyword={keyword}   # 키워드 검색
-GET /api/gyms?latitude={lat}&longitude={lng}&keyword={keyword}  # 위치+키워드 검색
+GET /api/gyms/search?keyword={keyword}   # 키워드 검색
+GET /api/gyms/nearby?latitude={lat}&longitude={lng}&keyword={keyword}  # 위치+키워드 검색
+GET /api/ranking/users?criteria={criteria}&page={page}&size={size}     # 페이징 랭킹 조회
 ```
 
 ## Controller 구현 패턴

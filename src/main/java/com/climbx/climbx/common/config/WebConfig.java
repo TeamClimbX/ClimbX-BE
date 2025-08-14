@@ -1,9 +1,11 @@
 package com.climbx.climbx.common.config;
 
-import com.climbx.climbx.common.timeTracking.TimeTrackingInterceptor;
+import com.climbx.climbx.common.converter.StringToEnumConverterFactory;
+import com.climbx.climbx.common.middleware.TimeTrackingInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.format.FormatterRegistry;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -14,11 +16,17 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 
     private final TimeTrackingInterceptor timeTrackingInterceptor;
+    private final StringToEnumConverterFactory stringToEnumConverterFactory;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(timeTrackingInterceptor)
             .addPathPatterns("/api/**"); // API 경로에만 적용
+    }
+
+    @Override
+    public void addFormatters(FormatterRegistry registry) {
+        registry.addConverterFactory(stringToEnumConverterFactory);
     }
 
     @Bean

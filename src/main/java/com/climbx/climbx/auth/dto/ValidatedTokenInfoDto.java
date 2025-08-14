@@ -1,5 +1,6 @@
 package com.climbx.climbx.auth.dto;
 
+import com.climbx.climbx.auth.enums.OAuth2ProviderType;
 import lombok.Builder;
 
 /**
@@ -12,7 +13,7 @@ public record ValidatedTokenInfoDto(
     String nickname,
     String email,
     String profileImageUrl,
-    String providerType
+    OAuth2ProviderType providerType
 ) {
 
 }
