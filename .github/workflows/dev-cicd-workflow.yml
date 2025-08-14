@@ -63,11 +63,11 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           echo "Building and pushing Docker image..."
-          docker build -t ${{ secrets.DEV_BE_CORE_ECR_REPOSITORY_URI }}:$IMAGE_TAG .
-          docker tag ${{ secrets.DEV_BE_CORE_ECR_REPOSITORY_URI }}:$IMAGE_TAG ${{ secrets.DEV_BE_CORE_ECR_REPOSITORY_URI }}:latest
+          docker build -t ${{ secrets.AWS_DEV_BE_CORE_ECR_REPOSITORY_URI }}:$IMAGE_TAG .
+          docker tag ${{ secrets.AWS_DEV_BE_CORE_ECR_REPOSITORY_URI }}:$IMAGE_TAG ${{ secrets.AWS_DEV_BE_CORE_ECR_REPOSITORY_URI }}:latest
           
-          docker push ${{ secrets.DEV_BE_CORE_ECR_REPOSITORY_URI }}:latest
-          docker push ${{ secrets.DEV_BE_CORE_ECR_REPOSITORY_URI }}:$IMAGE_TAG
+          docker push ${{ secrets.AWS_DEV_BE_CORE_ECR_REPOSITORY_URI }}:latest
+          docker push ${{ secrets.AWS_DEV_BE_CORE_ECR_REPOSITORY_URI }}:$IMAGE_TAG
           
           echo "✅ Image successfully pushed to ECR"
 
@@ -81,9 +81,9 @@ jobs:
       - name: Deploy to EC2 instance
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.DEV_BE_CORE_EC2_HOST }}
-          username: ${{ secrets.DEV_BE_CORE_EC2_USERNAME }}
-          key: ${{ secrets.DEV_BE_CORE_EC2_SSH_KEY_PEM }}
+          host: ${{ secrets.AWS_DEV_BE_CORE_EC2_HOST }}
+          username: ${{ secrets.AWS_DEV_BE_CORE_EC2_USERNAME }}
+          key: ${{ secrets.AWS_DEV_BE_CORE_EC2_SSH_KEY_PEM }}
           port: 22
           script: |
             # 1. AWS ECR에 로그인
@@ -92,19 +92,20 @@ jobs:
               --region ${{ vars.AWS_REGION }} \
             | docker login \
               --username AWS \
-              --password-stdin ${{ secrets.DEV_BE_CORE_ECR_REPOSITORY_URI }}
+              --password-stdin ${{ secrets.AWS_DEV_BE_CORE_ECR_REPOSITORY_URI }}
             
             # 2. 최신 Docker 이미지 PULL
-            docker pull ${{ secrets.DEV_BE_CORE_ECR_REPOSITORY_URI }}:latest
+            docker pull ${{ secrets.AWS_DEV_BE_CORE_ECR_REPOSITORY_URI }}:latest
             
             # 3. 기존 컨테이너 강제 제거 (실행 중이거나 중지된 상태 관계없이)
             echo "Removing existing container if exists..."
-            docker rm -f ${{ vars.DEV_BE_CORE_CONTAINER_NAME }} 2>/dev/null || echo "No existing container to remove."
+            docker rm -f ${{ vars.SPRING_CONTAINER_NAME }} 2>/dev/null || echo "No existing container to remove."
             
             # 4. 새로운 컨테이너 실행
             echo "Starting new container..."
             docker run -d -p ${{ vars.SPRING_CONTAINER_PORT }}:${{ vars.SPRING_CONTAINER_PORT }} \
-              --name '${{ vars.DEV_BE_CORE_CONTAINER_NAME }}' \
+              --name '${{ vars.SPRING_CONTAINER_NAME }}' \
+              -e SPRING_PROFILES_ACTIVE='dev' \
               -e DB_URL='${{ secrets.DEV_DB_URL }}' \
               -e DB_USER='${{ secrets.DEV_DB_USER }}' \
               -e DB_PASSWORD='${{ secrets.DEV_DB_PASSWORD }}' \
@@ -113,15 +114,15 @@ jobs:
               -e GOOGLE_IOS_APP_KEY='${{ secrets.GOOGLE_IOS_APP_KEY }}' \
               -e APPLE_ANDROID_APP_KEY='${{ secrets.APPLE_ANDROID_APP_KEY }}' \
               -e APPLE_IOS_APP_KEY='${{ secrets.APPLE_IOS_APP_KEY }}' \
-              -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
-              -e AWS_DEV_S3_VIDEOS_SOURCE_BUCKET_NAME='${{ secrets.AWS_S3_VIDEOS_SOURCE_BUCKET_NAME }}' \
-              -e AWS_DEV_S3_IMAGES_BUCKET_NAME='${{ secrets.AWS_S3_IMAGES_BUCKET_NAME }}' \
-              -e AWS_DEV_S3_PRESIGNED_URL_EXPIRATION='${{ secrets.AWS_S3_PRESIGNED_URL_EXPIRATION }}' \
-              -e AWS_DEV_CLOUDFRONT_DOMAIN='${{ secrets.AWS_CLOUDFRONT_DOMAIN }}' \
+              -e JWT_SECRET='${{ secrets.JWT_SECRET_DEV }}' \
+              -e AWS_S3_VIDEOS_SOURCE_BUCKET_NAME='${{ secrets.AWS_DEV_S3_VIDEOS_SOURCE_BUCKET_NAME }}' \
+              -e AWS_S3_IMAGES_BUCKET_NAME='${{ secrets.AWS_DEV_S3_IMAGES_BUCKET_NAME }}' \
+              -e AWS_S3_PRESIGNED_URL_EXPIRATION='${{ secrets.AWS_DEV_S3_PRESIGNED_URL_EXPIRATION }}' \
+              -e AWS_CLOUDFRONT_DOMAIN='${{ secrets.AWS_DEV_CLOUDFRONT_DOMAIN }}' \
               -e AWS_S3_REGION='${{ vars.AWS_S3_REGION }}' \
               -e AWS_ACCESS_KEY_ID='${{ secrets.AWS_ACCESS_KEY_ID }}' \
               -e AWS_SECRET_ACCESS_KEY='${{ secrets.AWS_SECRET_ACCESS_KEY }}' \
-              ${{ secrets.DEV_BE_CORE_ECR_REPOSITORY_URI }}:latest
+              ${{ secrets.AWS_DEV_BE_CORE_ECR_REPOSITORY_URI }}:latest
             
             echo "New container started successfully."
             
