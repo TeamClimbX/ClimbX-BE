@@ -16,6 +16,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,10 +25,7 @@ import lombok.experimental.Accessors;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
-@Table(name = "user_ranking_histories", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_user_ranking_histories_user_date_criteria", 
-                     columnNames = {"user_id", "created_at", "criteria"})
-})
+@Table(name = "user_ranking_histories")
 @SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 @AllArgsConstructor(access = lombok.AccessLevel.PRIVATE)
