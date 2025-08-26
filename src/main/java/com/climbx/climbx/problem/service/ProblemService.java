@@ -148,8 +148,8 @@ public class ProblemService {
             .orElseThrow(() -> new UserNotFoundException(userId));
 
         SubmissionEntity submission = submissionRepository.getVotableSubmission(
-            userId,
-            problemId
+            problemId,
+            userId
         ).orElseThrow(() -> new ForbiddenProblemVoteException(problemId, userId));
 
         ProblemEntity problem = submission.problemEntity();
