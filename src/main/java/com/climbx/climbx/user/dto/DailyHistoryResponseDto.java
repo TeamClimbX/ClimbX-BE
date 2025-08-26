@@ -8,14 +8,14 @@ import lombok.Builder;
 public record DailyHistoryResponseDto(
 
     LocalDate date,
-    Long value
+    Integer value
 ) {
 
     public DailyHistoryResponseDto(Date date, Long value) {
-        this(date.toLocalDate(), value);
+        this(date.toLocalDate(), value.intValue());
     }
 
     public DailyHistoryResponseDto(Date date, Integer value) {
-        this(date.toLocalDate(), value.longValue());
+        this(date.toLocalDate(), value);
     }
 }

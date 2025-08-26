@@ -289,7 +289,7 @@ public class UserFixture {
     ) {
         return DailyHistoryResponseDto.builder()
             .date(date)
-            .value((long) value)
+            .value(value)
             .build();
     }
 
