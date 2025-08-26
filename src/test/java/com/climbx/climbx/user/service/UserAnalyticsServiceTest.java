@@ -178,9 +178,9 @@ class UserAnalyticsServiceTest {
 
             UserAccountEntity user = createMockUserAccountEntity(userId, nickname);
             List<DailyHistoryResponseDto> expectedHistory = List.of(
-                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 1), 3L),
-                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 2), 2L),
-                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 3), 5L)
+                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 1), 3),
+                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 2), 2),
+                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 3), 5)
             );
 
             given(userLookupService.findUserByNickname(nickname)).willReturn(user);
@@ -195,9 +195,9 @@ class UserAnalyticsServiceTest {
             // then
             assertThat(result).hasSize(3);
             assertThat(result.get(0).date()).isEqualTo(LocalDate.of(2024, 1, 1));
-            assertThat(result.get(0).value()).isEqualTo(3L);
-            assertThat(result.get(1).value()).isEqualTo(2L);
-            assertThat(result.get(2).value()).isEqualTo(5L);
+            assertThat(result.get(0).value()).isEqualTo(3);
+            assertThat(result.get(1).value()).isEqualTo(2);
+            assertThat(result.get(2).value()).isEqualTo(5);
 
             then(userLookupService).should().findUserByNickname(nickname);
             then(submissionRepository).should()
@@ -237,7 +237,7 @@ class UserAnalyticsServiceTest {
 
             UserAccountEntity user = createMockUserAccountEntity(userId, nickname);
             List<DailyHistoryResponseDto> expectedHistory = List.of(
-                new DailyHistoryResponseDto(date, 3L)
+                new DailyHistoryResponseDto(date, 3)
             );
 
             given(userLookupService.findUserByNickname(nickname)).willReturn(user);
@@ -252,7 +252,7 @@ class UserAnalyticsServiceTest {
             // then
             assertThat(result).hasSize(1);
             assertThat(result.get(0).date()).isEqualTo(date);
-            assertThat(result.get(0).value()).isEqualTo(3L);
+            assertThat(result.get(0).value()).isEqualTo(3);
         }
     }
 
@@ -272,9 +272,9 @@ class UserAnalyticsServiceTest {
 
             UserAccountEntity user = createMockUserAccountEntity(userId, nickname);
             List<DailyHistoryResponseDto> expectedHistory = List.of(
-                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 1), 1200L),
-                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 2), 1250L),
-                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 3), 1300L)
+                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 1), 1200),
+                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 2), 1250),
+                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 3), 1300)
             );
 
             given(userLookupService.findUserByNickname(nickname)).willReturn(user);
@@ -288,9 +288,9 @@ class UserAnalyticsServiceTest {
 
             // then
             assertThat(result).hasSize(3);
-            assertThat(result.get(0).value()).isEqualTo(1200L);
-            assertThat(result.get(1).value()).isEqualTo(1250L);
-            assertThat(result.get(2).value()).isEqualTo(1300L);
+            assertThat(result.get(0).value()).isEqualTo(1200);
+            assertThat(result.get(1).value()).isEqualTo(1250);
+            assertThat(result.get(2).value()).isEqualTo(1300);
 
             then(userLookupService).should().findUserByNickname(nickname);
             then(userRankingHistoryRepository).should()
@@ -309,9 +309,9 @@ class UserAnalyticsServiceTest {
 
             UserAccountEntity user = createMockUserAccountEntity(userId, nickname);
             List<DailyHistoryResponseDto> expectedHistory = List.of(
-                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 1), 10L),
-                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 2), 12L),
-                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 3), 15L)
+                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 1), 10),
+                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 2), 12),
+                new DailyHistoryResponseDto(LocalDate.of(2024, 1, 3), 15)
             );
 
             given(userLookupService.findUserByNickname(nickname)).willReturn(user);
@@ -325,9 +325,9 @@ class UserAnalyticsServiceTest {
 
             // then
             assertThat(result).hasSize(3);
-            assertThat(result.get(0).value()).isEqualTo(10L);
-            assertThat(result.get(1).value()).isEqualTo(12L);
-            assertThat(result.get(2).value()).isEqualTo(15L);
+            assertThat(result.get(0).value()).isEqualTo(10);
+            assertThat(result.get(1).value()).isEqualTo(12);
+            assertThat(result.get(2).value()).isEqualTo(15);
 
             then(userRankingHistoryRepository).should()
                 .getUserDailyHistory(userId, criteria, from, to);
