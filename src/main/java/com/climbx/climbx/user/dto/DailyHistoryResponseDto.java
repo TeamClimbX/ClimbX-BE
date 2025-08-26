@@ -14,8 +14,4 @@ public record DailyHistoryResponseDto(
     public DailyHistoryResponseDto(Date date, Long value) {
         this(date.toLocalDate(), value);
     }
-
-    public DailyHistoryResponseDto(Date date, Integer value) {
-        this(date.toLocalDate(), value.longValue());
-    }
 }
