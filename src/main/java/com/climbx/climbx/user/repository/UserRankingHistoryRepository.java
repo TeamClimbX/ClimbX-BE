@@ -19,7 +19,7 @@ public interface UserRankingHistoryRepository extends
     @Query("""
         SELECT new com.climbx.climbx.user.dto.DailyHistoryResponseDto(
             DATE(h.createdAt),
-            SUM(h.value)
+            h.value
         )
           FROM UserRankingHistoryEntity h
          WHERE h.userId = :userId
