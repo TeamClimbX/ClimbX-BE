@@ -203,7 +203,18 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
 
     // ProblemEntity를 fetch join
     @EntityGraph(attributePaths = "problemEntity")
-    Optional<SubmissionEntity> findByProblemIdAndVideoEntity_UserIdAndStatus(
-        UUID problemId, Long userId, StatusType status
+    Optional<SubmissionEntity> findByProblemIdAndVideoEntity_UserIdAndStatusIn(
+        UUID problemId, Long videoEntity_userId, List<StatusType> statusList
     );
+
+    default Optional<SubmissionEntity> getVotableSubmission(UUID problemId, Long userId) {
+        return findByProblemIdAndVideoEntity_UserIdAndStatusIn(
+            problemId,
+            userId,
+            List.of(
+                StatusType.ACCEPTED,
+                StatusType.PENDING
+            )
+        );
+    }
 }
