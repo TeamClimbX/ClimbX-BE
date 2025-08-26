@@ -38,6 +38,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/auth/unregister").authenticated()
                     .requestMatchers(HttpMethod.PUT, "/api/users/**").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/videos/upload").authenticated()
+                    .requestMatchers(HttpMethod.DELETE, "/api/videos/**").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/submissions/**").authenticated()
                     .requestMatchers(HttpMethod.DELETE, "/api/submissions/**").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/problems/*").authenticated()

@@ -41,4 +41,11 @@ public interface VideoRepository extends JpaRepository<VideoEntity, UUID> {
     @Modifying
     @Query("UPDATE VideoEntity v SET v.deletedAt = CURRENT_TIMESTAMP WHERE v.userId = :userId")
     int softDeleteAllByUserId(@Param("userId") Long userId);
+
+    /**
+     * 특정 비디오를 soft delete 처리합니다.
+     */
+    @Modifying
+    @Query("UPDATE VideoEntity v SET v.deletedAt = CURRENT_TIMESTAMP WHERE v.videoId = :videoId")
+    int softDeleteByVideoId(@Param("videoId") UUID videoId);
 } 
