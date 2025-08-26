@@ -2,10 +2,8 @@ package com.climbx.climbx.problem.service;
 
 import com.climbx.climbx.common.enums.ActiveStatusType;
 import com.climbx.climbx.common.enums.ErrorCode;
-import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.common.exception.InvalidParameterException;
 import com.climbx.climbx.common.service.S3Service;
-import com.climbx.climbx.problem.util.ProblemRatingUtil;
 import com.climbx.climbx.gym.entity.GymAreaEntity;
 import com.climbx.climbx.gym.entity.GymEntity;
 import com.climbx.climbx.gym.enums.GymTierType;
@@ -30,6 +28,7 @@ import com.climbx.climbx.problem.repository.ContributionRepository;
 import com.climbx.climbx.problem.repository.ContributionTagRepository;
 import com.climbx.climbx.problem.repository.ProblemRepository;
 import com.climbx.climbx.problem.repository.ProblemTagRepository;
+import com.climbx.climbx.problem.util.ProblemRatingUtil;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
 import com.climbx.climbx.user.entity.UserAccountEntity;
@@ -148,10 +147,9 @@ public class ProblemService {
         UserAccountEntity user = userAccountRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
 
-        SubmissionEntity submission = submissionRepository.findByProblemIdAndVideoEntity_UserIdAndStatus(
+        SubmissionEntity submission = submissionRepository.getVotableSubmission(
             problemId,
-            userId,
-            StatusType.ACCEPTED
+            userId
         ).orElseThrow(() -> new ForbiddenProblemVoteException(problemId, userId));
 
         ProblemEntity problem = submission.problemEntity();
