@@ -2,7 +2,6 @@ package com.climbx.climbx.video.service;
 
 import com.climbx.climbx.common.enums.ErrorCode;
 import com.climbx.climbx.common.enums.StatusType;
-import com.climbx.climbx.common.exception.BusinessException;
 import com.climbx.climbx.common.service.S3Service;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
@@ -13,6 +12,7 @@ import com.climbx.climbx.video.dto.VideoUploadRequestDto;
 import com.climbx.climbx.video.dto.VideoUploadResponseDto;
 import com.climbx.climbx.video.entity.VideoEntity;
 import com.climbx.climbx.video.exception.VideoNotFoundException;
+import com.climbx.climbx.video.exception.VideoOnlyOwnerCanModifyException;
 import com.climbx.climbx.video.repository.VideoRepository;
 import java.util.List;
 import java.util.UUID;
@@ -79,12 +79,7 @@ public class VideoService {
 
         // 비디오 소유자 확인
         if (!videoEntity.userId().equals(userId)) {
-            throw new BusinessException(ErrorCode.VIDEO_ONLY_OWNER_CAN_MODIFY);
-        }
-
-        // 이미 삭제된 비디오인지 확인
-        if (videoEntity.deletedAt() != null) {
-            throw new VideoNotFoundException(videoId);
+            throw new VideoOnlyOwnerCanModifyException(ErrorCode.VIDEO_ONLY_OWNER_CAN_MODIFY);
         }
 
         // Soft delete 수행
