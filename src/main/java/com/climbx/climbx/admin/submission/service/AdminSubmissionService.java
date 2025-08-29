@@ -20,6 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.climbx.climbx.common.enums.OutboxEventType;
+import com.climbx.climbx.common.service.OutboxService;
 
 @Service
 @Transactional(readOnly = true)
@@ -30,6 +32,7 @@ public class AdminSubmissionService {
     private final SubmissionRepository submissionRepository;
     private final UserStatRepository userStatRepository;
     private final UserRatingUtil userRatingUtil;
+    private final OutboxService outboxService;
 
     @Transactional
     public SubmissionReviewResponseDto reviewSubmission(
@@ -78,6 +81,17 @@ public class AdminSubmissionService {
             log.info("User {} (ID: {}) new rating: {}",
                 userStat.userAccountEntity().nickname(),
                 userId, rating.totalRating());
+
+            try {
+                outboxService.recordEvent(
+                    "user",
+                    userId.toString(),
+                    OutboxEventType.USER_SOLVED_PROBLEM,
+                    submission.videoId().toString(),
+                    "{\"userId\":" + userId + ",\"videoId\":\"" + submission.videoId() + "\"}"
+                );
+            } catch (Exception ignored) {
+            }
         }
 
         return SubmissionReviewResponseDto.builder()
