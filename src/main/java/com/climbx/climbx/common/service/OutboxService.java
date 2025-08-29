@@ -21,26 +21,13 @@ public class OutboxService {
     public void recordEvent(
         String aggregateType,
         String aggregateId,
-        OutboxEventType eventType,
-        String dedupKey,
-        String payloadJson
+        OutboxEventType eventType
     ) {
-        byte[] dedupHash = HashUtil.sha256(eventType.name() + "|" + dedupKey);
-
-        Optional<OutboxEventEntity> existing =
-            outboxEventRepository.findByEventTypeAndDedupHash(eventType, dedupHash);
-        if (existing.isPresent()) {
-            return;
-        }
-
         OutboxEventEntity event = OutboxEventEntity.builder()
-            .id(UUID.randomUUID())
+            .eventId(UUID.randomUUID())
             .aggregateType(aggregateType)
             .aggregateId(aggregateId)
             .eventType(eventType)
-            .dedupKey(dedupKey)
-            .dedupHash(dedupHash)
-            .payloadJson(payloadJson)
             .occurredAt(LocalDateTime.now())
             .build();
 

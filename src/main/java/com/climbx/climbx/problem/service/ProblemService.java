@@ -235,25 +235,15 @@ public class ProblemService {
 
         // Outbox: 사용자 난이도 기여 및 (필요 시) 문제 티어 변경 이벤트 기록
         try {
-            outboxService.recordEvent(
-                "problem",
-                problem.problemId().toString(),
-                OutboxEventType.USER_DIFFICULTY_CONTRIBUTED,
-                userId + ":" + problem.problemId(),
-                "{\"userId\":" + userId + ",\"problemId\":\"" + problem.problemId() + "\"}"
-            );
-
             if (!problem.tier().equals(newProblemTier)) {
                 outboxService.recordEvent(
                     "problem",
                     problem.problemId().toString(),
-                    OutboxEventType.PROBLEM_TIER_CHANGED,
-                    problem.problemId().toString() + ":" + newProblemTier.name(),
-                    "{\"problemId\":\"" + problem.problemId() + "\",\"newTier\":\"" + newProblemTier.name() + "\"}"
+                    OutboxEventType.PROBLEM_TIER_CHANGED
                 );
             }
         } catch (Exception ignored) {
-            // 동일 트랜잭션 내 outbox insert 실패로 본 트랜잭션이 롤백되는 것을 방지하지 않음
+            // outbox insert가 실패하면 본 트랜잭션이 롤백되도록 함
         }
 
         UserStatEntity userStat = user.userStatEntity();

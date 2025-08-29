@@ -7,6 +7,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -20,15 +21,9 @@ import org.hibernate.annotations.SQLRestriction;
 @Entity
 @Table(
     name = "outbox_events",
-    uniqueConstraints = {
-        @jakarta.persistence.UniqueConstraint(
-            name = "uk_outbox_event_type_hash",
-            columnNames = {"event_type", "dedup_hash"}
-        )
-    },
     indexes = {
-        @jakarta.persistence.Index(name = "idx_outbox_processed", columnList = "processed"),
-        @jakarta.persistence.Index(name = "idx_outbox_occurred_at", columnList = "occurred_at")
+        @Index(name = "idx_outbox_processed", columnList = "processed"),
+        @Index(name = "idx_outbox_occurred_at", columnList = "occurred_at")
     }
 )
 @SQLRestriction("deleted_at IS NULL")
@@ -40,8 +35,8 @@ import org.hibernate.annotations.SQLRestriction;
 public class OutboxEventEntity extends BaseTimeEntity {
 
     @Id
-    @Column(name = "id", columnDefinition = "BINARY(16)", updatable = false, nullable = false)
-    private UUID id;
+    @Column(name = "event_id", columnDefinition = "BINARY(16)", updatable = false, nullable = false)
+    private UUID eventId;
 
     @Column(name = "aggregate_type", length = 64, nullable = false)
     @NotNull
@@ -56,17 +51,7 @@ public class OutboxEventEntity extends BaseTimeEntity {
     @NotNull
     private OutboxEventType eventType;
 
-    @Column(name = "dedup_key", length = 128, nullable = false)
-    @NotNull
-    private String dedupKey;
-
-    @Column(name = "dedup_hash", columnDefinition = "BINARY(32)", nullable = false)
-    @NotNull
-    private byte[] dedupHash;
-
-    @Column(name = "payload_json", columnDefinition = "JSON", nullable = false)
-    @NotNull
-    private String payloadJson;
+    // payload는 더 이상 사용하지 않습니다.
 
     @Column(name = "occurred_at", nullable = false)
     @NotNull
