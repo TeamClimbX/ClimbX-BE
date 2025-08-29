@@ -1,6 +1,7 @@
 package com.climbx.climbx.user.service;
 
 import com.climbx.climbx.common.enums.StatusType;
+import com.climbx.climbx.problem.dto.ProblemInfoResponseDto;
 import com.climbx.climbx.problem.dto.TagRatingPairDto;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
 import com.climbx.climbx.user.dto.RatingResponseDto;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -163,6 +165,39 @@ public class UserDataAggregationService {
             .contributionRating(
                 UserRatingUtil.calculateContributionScore(userStat.contributionCount()))
             .build();
+    }
+
+    /**
+     * 특정 유저의 레이팅을 재계산하고 UserStat을 업데이트합니다. AdminSubmissionService와 배치 처리에서 공통으로 사용됩니다.
+     */
+    @Transactional
+    public void recalculateAndUpdateUserRating(Long userId) {
+        UserStatEntity userStat = findUserStatByUserId(userId);
+
+        List<Integer> topProblemRatings = getUserTopProblemRatings(userId);
+
+        RatingResponseDto updatedRating = userRatingUtil.calculateUserRating(
+            topProblemRatings,
+            userStat.submissionCount(),
+            userStat.solvedCount(),
+            userStat.contributionCount()
+        );
+
+        userStat.setRating(updatedRating.totalRating());
+        userStat.setTopProblemRating(updatedRating.topProblemRating());
+
+        log.debug("Updated user rating for userId: {}, new rating: {}",
+            userId, updatedRating.totalRating());
+    }
+
+    private List<Integer> getUserTopProblemRatings(Long userId) {
+        return submissionRepository.getUserTopProblems(
+                userId,
+                StatusType.ACCEPTED,
+                Pageable.ofSize(50)
+            ).stream()
+            .map(ProblemInfoResponseDto::rating)
+            .toList();
     }
 
     protected UserStatEntity findUserStatByUserId(Long userId) {

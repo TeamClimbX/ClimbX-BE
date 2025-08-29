@@ -6,21 +6,20 @@ import com.climbx.climbx.admin.submission.exception.StatusModifyToPendingExcepti
 import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.problem.repository.ContributionRepository;
 import com.climbx.climbx.problem.service.ProblemService;
+import com.climbx.climbx.common.service.OutboxService;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.submission.exception.PendingSubmissionNotFoundException;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
-import com.climbx.climbx.user.dto.RatingResponseDto;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
+import com.climbx.climbx.user.service.UserDataAggregationService;
 import com.climbx.climbx.user.util.UserRatingUtil;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.climbx.climbx.common.enums.OutboxEventType;
-import com.climbx.climbx.common.service.OutboxService;
 
 @Service
 @Transactional(readOnly = true)
@@ -30,7 +29,7 @@ public class AdminSubmissionService {
 
     private final SubmissionRepository submissionRepository;
     private final UserStatRepository userStatRepository;
-    private final UserRatingUtil userRatingUtil;
+    private final UserDataAggregationService userDataAggregationService;
     private final OutboxService outboxService;
     private final ContributionRepository contributionRepository;
     private final ProblemService problemService;
@@ -76,10 +75,11 @@ public class AdminSubmissionService {
                 userStat.contributionCount()
             );
 
-            userStat.setRating(rating.totalRating());
-            userStat.setTopProblemRating(rating.topProblemRating());
-            // Category Rating은 batch에서 처리
+            // 통합된 레이팅 재계산 메서드 사용
+            userDataAggregationService.recalculateAndUpdateUserRating(userId);
 
+            log.info("User {} (ID: {}) rating updated after submission approval",
+                userStat.userAccountEntity().nickname(), userId);
             contributionRepository.findByUserIdAndProblemId(
                 userId,
                 problemId
