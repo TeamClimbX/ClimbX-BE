@@ -4,24 +4,19 @@ import com.climbx.climbx.admin.submission.dto.SubmissionReviewRequestDto;
 import com.climbx.climbx.admin.submission.dto.SubmissionReviewResponseDto;
 import com.climbx.climbx.admin.submission.exception.StatusModifyToPendingException;
 import com.climbx.climbx.common.enums.StatusType;
-import com.climbx.climbx.user.util.UserRatingUtil;
-import com.climbx.climbx.problem.dto.ProblemInfoResponseDto;
+import com.climbx.climbx.common.service.OutboxService;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.submission.exception.PendingSubmissionNotFoundException;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
-import com.climbx.climbx.user.dto.RatingResponseDto;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
-import java.util.List;
+import com.climbx.climbx.user.service.UserDataAggregationService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.climbx.climbx.common.enums.OutboxEventType;
-import com.climbx.climbx.common.service.OutboxService;
 
 @Service
 @Transactional(readOnly = true)
@@ -31,7 +26,7 @@ public class AdminSubmissionService {
 
     private final SubmissionRepository submissionRepository;
     private final UserStatRepository userStatRepository;
-    private final UserRatingUtil userRatingUtil;
+    private final UserDataAggregationService userDataAggregationService;
     private final OutboxService outboxService;
 
     @Transactional
@@ -67,31 +62,12 @@ public class AdminSubmissionService {
 
         if (submission.status() == StatusType.ACCEPTED) {
             userStat.incrementSolvedProblemsCount();
-            RatingResponseDto rating = userRatingUtil.calculateUserRating(
-                getUserTopProblemRatings(userId),
-                userStat.submissionCount(),
-                userStat.solvedCount(),
-                userStat.contributionCount()
-            );
 
-            userStat.setRating(rating.totalRating());
-            userStat.setTopProblemRating(rating.topProblemRating());
-            // Category Rating은 batch에서 처리
+            // 통합된 레이팅 재계산 메서드 사용
+            userDataAggregationService.recalculateAndUpdateUserRating(userId);
 
-            log.info("User {} (ID: {}) new rating: {}",
-                userStat.userAccountEntity().nickname(),
-                userId, rating.totalRating());
-
-            try {
-                outboxService.recordEvent(
-                    "user",
-                    userId.toString(),
-                    OutboxEventType.USER_SOLVED_PROBLEM,
-                    submission.videoId().toString(),
-                    "{\"userId\":" + userId + ",\"videoId\":\"" + submission.videoId() + "\"}"
-                );
-            } catch (Exception ignored) {
-            }
+            log.info("User {} (ID: {}) rating updated after submission approval",
+                userStat.userAccountEntity().nickname(), userId);
         }
 
         return SubmissionReviewResponseDto.builder()
@@ -99,15 +75,5 @@ public class AdminSubmissionService {
             .status(submission.status())
             .reason(submission.statusReason())
             .build();
-    }
-
-    private List<Integer> getUserTopProblemRatings(Long userId) {
-        return submissionRepository.getUserTopProblems(
-                userId,
-                StatusType.ACCEPTED,
-                Pageable.ofSize(50)
-            ).stream()
-            .map(ProblemInfoResponseDto::rating)
-            .toList();
     }
 }
