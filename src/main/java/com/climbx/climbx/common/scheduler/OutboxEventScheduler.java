@@ -21,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * TODO: Work Queue 패턴을 통한 트랜잭션 분리 및 동시성 제어 개선 필요
  * TODO: 배치 처리 성능 최적화 및 재시도 메커니즘 개선 필요
+ * TODO: 인테그레이션 테스트 추가 필요 - 실제 DB와 함께 스케줄링 동작 검증
+ * TODO: 개발 환경용 테스트 API 추가 필요 - 스케줄러 수동 실행 엔드포인트
+ * TODO: 개발 환경에서는 배치 실행 주기를 짧게 설정 (예: 1분) 하여 로컬 테스트 편의성 향상
  */
 @Slf4j
 @Configuration
