@@ -1,16 +1,14 @@
 package com.climbx.climbx.common.scheduler;
 
-import com.climbx.climbx.common.enums.CriteriaType;
-import com.climbx.climbx.user.entity.UserRankingHistoryEntity;
-import com.climbx.climbx.user.repository.UserRankingHistoryRepository;
+import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.repository.UserStatRepository;
 import java.time.LocalDate;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * DailyRankingSnapshotScheduler는 매일 정해진 시간에 사용자 랭킹 통계를 히스토리 테이블에 스냅샷으로 저장하는 스케줄러입니다.
@@ -29,38 +27,27 @@ import org.springframework.transaction.annotation.Transactional;
 public class DailyRankingSnapshotScheduler {
 
     private final UserStatRepository userStatRepository;
-    private final UserRankingHistoryRepository userRankingHistoryRepository;
+    private final RankingSnapshotProcessor rankingSnapshotProcessor;
 
-    // 00:05 UTC에 스냅샷 작업 실행
     @Scheduled(cron = "0 5 0 * * *", zone = "Asia/Seoul")
-    @Transactional
     public void snapshotDailyRanking() {
         LocalDate today = LocalDate.now();
-        var userStats = userStatRepository.findAll();
+        List<UserStatEntity> userStats = userStatRepository.findAll();
+        int successCount = 0;
+        int failureCount = 0;
 
-        // criteria 별로 history insert
-        userStats.forEach(us -> {
-            userRankingHistoryRepository.save(UserRankingHistoryEntity.builder()
-                .criteria(CriteriaType.RATING)
-                .userAccountEntity(us.userAccountEntity())
-                .value(us.rating())
-                .build());
+        for (UserStatEntity userStat : userStats) {
+            try {
+                rankingSnapshotProcessor.createUserRankingSnapshotInNewTransaction(userStat);
+                successCount++;
+            } catch (Exception e) {
+                failureCount++;
+                log.error("Failed to create ranking snapshot for userId: {}, error: {}", 
+                    userStat.userAccountEntity().userId(), e.getMessage(), e);
+            }
+        }
 
-            userRankingHistoryRepository.save(UserRankingHistoryEntity.builder()
-                .criteria(CriteriaType.LONGEST_STREAK)
-                .userAccountEntity(us.userAccountEntity())
-                .value(us.longestStreak())
-                .build());
-
-            userRankingHistoryRepository.save(UserRankingHistoryEntity.builder()
-                .criteria(CriteriaType.SOLVED_COUNT)
-                .userAccountEntity(us.userAccountEntity())
-                .value(us.solvedCount())
-                .build());
-        });
-
-        // 스냅샷 완료 로그
-        log.info("Daily ranking snapshot completed for {} users on date: {}", userStats.size(),
-            today);
+        log.info("Daily ranking snapshot completed for date: {} - Total: {}, Success: {}, Failure: {}", 
+            today, userStats.size(), successCount, failureCount);
     }
 }
