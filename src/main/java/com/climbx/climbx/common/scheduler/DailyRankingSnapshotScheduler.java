@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * DailyRankingSnapshotScheduler는 매일 정해진 시간에 사용자 랭킹 통계를 히스토리 테이블에 스냅샷으로 저장하는 스케줄러입니다.
@@ -29,7 +30,8 @@ public class DailyRankingSnapshotScheduler {
     private final UserStatRepository userStatRepository;
     private final RankingSnapshotProcessor rankingSnapshotProcessor;
 
-    @Scheduled(cron = "0 5 0 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "${scheduler.ranking.cron:0 5 0 * * *}", zone = "Asia/Seoul")
+    @Transactional(readOnly = true)
     public void snapshotDailyRanking() {
         LocalDate today = LocalDate.now();
         List<UserStatEntity> userStats = userStatRepository.findAll();
@@ -43,7 +45,7 @@ public class DailyRankingSnapshotScheduler {
             } catch (Exception e) {
                 failureCount++;
                 log.error("Failed to create ranking snapshot for userId: {}, error: {}", 
-                    userStat.userAccountEntity().userId(), e.getMessage(), e);
+                    userStat.userId(), e.getMessage(), e);
             }
         }
 

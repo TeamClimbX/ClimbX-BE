@@ -31,9 +31,10 @@ public class OutboxEventScheduler {
     private final OutboxEventProcessor outboxEventProcessor;
 
     /**
-     * 1시간 단위(정각)에 Outbox에서 미처리 이벤트들을 모두 처리합니다. 이벤트 타입에 따라 적절한 처리 로직을 호출합니다.
+     * Outbox에서 미처리 이벤트들을 모두 처리합니다. 이벤트 타입에 따라 적절한 처리 로직을 호출합니다.
+     * dev 환경: 매 1분, prod 환경: 매 정각
      */
-    @Scheduled(cron = "0 0 * * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "${scheduler.outbox.cron:0 0 * * * *}", zone = "Asia/Seoul")
     public void processAllOutboxEvents() {
         List<OutboxEventEntity> events = outboxEventRepository.findAllUnprocessedOrderByOccurredAtAsc();
         int successCount = 0;

@@ -3,14 +3,14 @@ package com.climbx.climbx.common.scheduler;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 
 import com.climbx.climbx.common.entity.OutboxEventEntity;
 import com.climbx.climbx.common.enums.OutboxEventType;
 import com.climbx.climbx.common.repository.OutboxEventRepository;
 import com.climbx.climbx.fixture.UserFixture;
-import com.climbx.climbx.submission.repository.SubmissionRepository;
-import com.climbx.climbx.user.service.UserDataAggregationService;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -29,10 +29,7 @@ class OutboxEventSchedulerTest {
     private OutboxEventRepository outboxEventRepository;
 
     @Mock
-    private SubmissionRepository submissionRepository;
-
-    @Mock
-    private UserDataAggregationService userDataAggregationService;
+    private OutboxEventProcessor outboxEventProcessor;
 
     @InjectMocks
     private OutboxEventScheduler outboxEventScheduler;
@@ -46,23 +43,18 @@ class OutboxEventSchedulerTest {
         void shouldProcessProblemTierChangedEventSuccessfully() {
             // given
             String problemId = UUID.randomUUID().toString();
-            List<Long> userIds = List.of(1L, 2L);
             OutboxEventEntity event = UserFixture.createOutboxEventEntity(
                 problemId, OutboxEventType.PROBLEM_TIER_CHANGED);
             
             given(outboxEventRepository.findAllUnprocessedOrderByOccurredAtAsc())
                 .willReturn(List.of(event));
-            given(submissionRepository.findDistinctUserIdsByProblemId(UUID.fromString(problemId)))
-                .willReturn(userIds);
 
             // when
             outboxEventScheduler.processAllOutboxEvents();
 
             // then
-            then(submissionRepository).should()
-                .findDistinctUserIdsByProblemId(UUID.fromString(problemId));
-            then(userDataAggregationService).should(times(2))
-                .recalculateAndUpdateUserRating(any(Long.class));
+            then(outboxEventProcessor).should()
+                .processEventInNewTransaction(event);
         }
 
         @Test
@@ -76,8 +68,7 @@ class OutboxEventSchedulerTest {
             outboxEventScheduler.processAllOutboxEvents();
 
             // then
-            then(submissionRepository).shouldHaveNoInteractions();
-            then(userDataAggregationService).shouldHaveNoInteractions();
+            then(outboxEventProcessor).shouldHaveNoInteractions();
         }
 
         @Test
@@ -93,21 +84,17 @@ class OutboxEventSchedulerTest {
 
             given(outboxEventRepository.findAllUnprocessedOrderByOccurredAtAsc())
                 .willReturn(List.of(event1, event2));
-            given(submissionRepository.findDistinctUserIdsByProblemId(UUID.fromString(problemId1)))
-                .willThrow(new RuntimeException("Database error"));
-            given(submissionRepository.findDistinctUserIdsByProblemId(UUID.fromString(problemId2)))
-                .willReturn(List.of(1L));
+            willThrow(new RuntimeException("Processing error"))
+                .given(outboxEventProcessor).processEventInNewTransaction(event1);
 
             // when
             outboxEventScheduler.processAllOutboxEvents();
 
             // then
-            then(submissionRepository).should()
-                .findDistinctUserIdsByProblemId(UUID.fromString(problemId1));
-            then(submissionRepository).should()
-                .findDistinctUserIdsByProblemId(UUID.fromString(problemId2));
-            then(userDataAggregationService).should()
-                .recalculateAndUpdateUserRating(1L);
+            then(outboxEventProcessor).should()
+                .processEventInNewTransaction(event1);
+            then(outboxEventProcessor).should()
+                .processEventInNewTransaction(event2);
         }
     }
 }
