@@ -6,9 +6,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.times;
 
 import com.climbx.climbx.fixture.UserFixture;
-import com.climbx.climbx.user.entity.UserRankingHistoryEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
-import com.climbx.climbx.user.repository.UserRankingHistoryRepository;
 import com.climbx.climbx.user.repository.UserStatRepository;
 import java.util.Collections;
 import java.util.List;
@@ -27,7 +25,7 @@ class DailyRankingSnapshotSchedulerTest {
     private UserStatRepository userStatRepository;
 
     @Mock
-    private UserRankingHistoryRepository userRankingHistoryRepository;
+    private RankingSnapshotProcessor rankingSnapshotProcessor;
 
     @InjectMocks
     private DailyRankingSnapshotScheduler dailyRankingSnapshotScheduler;
@@ -50,8 +48,8 @@ class DailyRankingSnapshotSchedulerTest {
             dailyRankingSnapshotScheduler.snapshotDailyRanking();
 
             // then
-            then(userRankingHistoryRepository).should(times(6))
-                .save(any(UserRankingHistoryEntity.class));
+            then(rankingSnapshotProcessor).should(times(2))
+                .createUserRankingSnapshotInNewTransaction(any(UserStatEntity.class));
         }
 
         @Test
@@ -64,7 +62,7 @@ class DailyRankingSnapshotSchedulerTest {
             dailyRankingSnapshotScheduler.snapshotDailyRanking();
 
             // then
-            then(userRankingHistoryRepository).shouldHaveNoInteractions();
+            then(rankingSnapshotProcessor).shouldHaveNoInteractions();
         }
     }
 }
