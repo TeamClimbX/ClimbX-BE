@@ -17,6 +17,12 @@ spring:
       connection-timeout: 20000
       validation-timeout: 3000
 
+  # Development 환경에서는 flyway 비활성화, JPA ddl-auto create-drop 설정
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
   jpa:
     hibernate:
       ddl-auto: create-drop
