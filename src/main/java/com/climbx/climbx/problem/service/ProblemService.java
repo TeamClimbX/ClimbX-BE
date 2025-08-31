@@ -242,8 +242,9 @@ public class ProblemService {
                     OutboxEventType.PROBLEM_TIER_CHANGED
                 );
             }
-        } catch (Exception ignored) {
-            // outbox insert가 실패하면 본 트랜잭션이 롤백되도록 함
+        } catch (Exception e) {
+            log.error("Failed to record outbox event for problem tier change - problemId: {}, error: {}", 
+                problem.problemId(), e.getMessage(), e);
         }
 
         UserStatEntity userStat = user.userStatEntity();
