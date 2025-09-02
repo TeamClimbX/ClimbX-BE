@@ -40,6 +40,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
+import com.climbx.climbx.common.enums.OutboxEventType;
+import com.climbx.climbx.common.service.OutboxService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -61,6 +63,7 @@ public class ProblemService {
     private final ProblemTagRepository problemTagRepository;
     private final ProblemRatingUtil problemRatingUtil;
     private final S3Service s3Service;
+    private final OutboxService outboxService;
 
     public List<ProblemInfoResponseDto> getProblemsWithFilters(
         Long gymId,
@@ -207,6 +210,20 @@ public class ProblemService {
             newProblemTier,
             primary2tags
         );
+
+        // Outbox: 사용자 난이도 기여 및 (필요 시) 문제 티어 변경 이벤트 기록
+        try {
+            if (!problem.tier().equals(newProblemTier)) {
+                outboxService.recordEvent(
+                    "problem",
+                    problem.problemId().toString(),
+                    OutboxEventType.PROBLEM_TIER_CHANGED
+                );
+            }
+        } catch (Exception e) {
+            log.error("Failed to record outbox event for problem tier change - problemId: {}, error: {}", 
+                problem.problemId(), e.getMessage(), e);
+        }
 
         UserStatEntity userStat = user.userStatEntity();
         userStat.incrementContributionCount();

@@ -206,4 +206,16 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
     Optional<SubmissionEntity> findByProblemIdAndVideoEntity_UserIdAndStatus(
         UUID problemId, Long userId, StatusType status
     );
+
+    /**
+     * 특정 문제를 해결한(ACCEPTED) 모든 유저 ID를 중복 제거하여 조회합니다.
+     */
+    @Query("""
+        SELECT DISTINCT v.userId
+        FROM SubmissionEntity s
+        JOIN s.videoEntity v
+        WHERE s.problemEntity.problemId = :problemId
+          AND s.status = 'ACCEPTED'
+        """)
+    List<Long> findDistinctUserIdsByProblemId(@Param("problemId") UUID problemId);
 }

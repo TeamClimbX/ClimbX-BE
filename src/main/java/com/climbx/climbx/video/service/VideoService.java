@@ -40,7 +40,6 @@ public class VideoService {
 
         VideoEntity videoEntity = VideoEntity.builder()
             .videoId(videoId)
-            .userId(userId)
             .userAccountEntity(user)
             .fileSize(videoUploadRequestDto.fileSize())
             .status(StatusType.PENDING)

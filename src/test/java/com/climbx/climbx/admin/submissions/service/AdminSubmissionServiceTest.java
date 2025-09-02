@@ -11,23 +11,15 @@ import com.climbx.climbx.admin.submission.dto.SubmissionReviewResponseDto;
 import com.climbx.climbx.admin.submission.exception.StatusModifyToPendingException;
 import com.climbx.climbx.admin.submission.service.AdminSubmissionService;
 import com.climbx.climbx.common.enums.StatusType;
-import com.climbx.climbx.user.util.UserRatingUtil;
-import com.climbx.climbx.fixture.GymAreaFixture;
-import com.climbx.climbx.fixture.GymFixture;
-import com.climbx.climbx.gym.entity.GymAreaEntity;
-import com.climbx.climbx.gym.entity.GymEntity;
-import com.climbx.climbx.problem.dto.ProblemInfoResponseDto;
-import com.climbx.climbx.problem.entity.ProblemEntity;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.submission.exception.PendingSubmissionNotFoundException;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
-import com.climbx.climbx.user.dto.RatingResponseDto;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
+import com.climbx.climbx.user.service.UserDataAggregationService;
 import com.climbx.climbx.video.entity.VideoEntity;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +29,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AdminSubmissionService 테스트")
@@ -53,7 +44,7 @@ class AdminSubmissionServiceTest {
     private UserStatRepository userStatRepository;
 
     @Mock
-    private UserRatingUtil userRatingUtil;
+    private UserDataAggregationService userDataAggregationService;
 
     @Nested
     @DisplayName("reviewSubmission 메서드 테스트")
@@ -66,8 +57,6 @@ class AdminSubmissionServiceTest {
             UUID videoId = UUID.randomUUID();
             Long userId = 1L;
             String reason = "승인 완료";
-            int oldRating = 1200;
-            int newRating = 1250;
 
             SubmissionReviewRequestDto request = SubmissionReviewRequestDto.builder()
                 .status(StatusType.ACCEPTED)
@@ -92,51 +81,17 @@ class AdminSubmissionServiceTest {
 
             UserStatEntity userStat = UserStatEntity.builder()
                 .userId(userId)
-                .rating(oldRating)
+                .rating(1200)
                 .submissionCount(10)
                 .solvedCount(5)
                 .contributionCount(3)
                 .userAccountEntity(userAccount)
                 .build();
 
-            GymEntity gym1 = GymFixture.createGymEntity(1L, "gym1", 0.0, 0.0);
-            GymEntity gym2 = GymFixture.createGymEntity(2L, "gym2", 0.0, 0.0);
-            GymEntity gym3 = GymFixture.createGymEntity(3L, "gym3", 0.0, 0.0);
-
-            GymAreaEntity gymArea1 = GymAreaFixture.createGymAreaEntity(1L, gym1, "area1");
-            GymAreaEntity gymArea2 = GymAreaFixture.createGymAreaEntity(2L, gym2, "area2");
-            GymAreaEntity gymArea3 = GymAreaFixture.createGymAreaEntity(3L, gym3, "area3");
-
-            List<ProblemInfoResponseDto> topProblems = List.of(
-                ProblemInfoResponseDto.from(
-                    ProblemEntity.builder().rating(1300).build(), gym1, gymArea1),
-                ProblemInfoResponseDto.from(
-                    ProblemEntity.builder().rating(1250).build(), gym2, gymArea2),
-                ProblemInfoResponseDto.from(
-                    ProblemEntity.builder().rating(1200).build(), gym3, gymArea3)
-            );
-
             given(submissionRepository.findById(videoId))
                 .willReturn(Optional.of(submission));
             given(userStatRepository.findById(userId))
                 .willReturn(Optional.of(userStat));
-            given(submissionRepository.getUserTopProblems(userId, StatusType.ACCEPTED,
-                Pageable.ofSize(50)))
-                .willReturn(topProblems);
-            given(userRatingUtil.calculateUserRating(
-                List.of(1300, 1250, 1200),
-                userStat.submissionCount(),
-                userStat.solvedCount() + 1, // incrementSolvedProblemsCount 호출 후
-                userStat.contributionCount()
-            )).willReturn(
-                RatingResponseDto.builder()
-                    .totalRating(newRating)
-                    .topProblemRating(0)
-                    .submissionRating(0)
-                    .solvedRating(0)
-                    .contributionRating(0)
-                    .build()
-            );
 
             // When
             SubmissionReviewResponseDto result = adminSubmissionService.reviewSubmission(videoId,
@@ -146,15 +101,12 @@ class AdminSubmissionServiceTest {
             assertThat(result.videoId()).isEqualTo(videoId);
             assertThat(result.status()).isEqualTo(StatusType.ACCEPTED);
             assertThat(result.reason()).isEqualTo(reason);
-            assertThat(userStat.rating()).isEqualTo(newRating);
             assertThat(userStat.solvedCount()).isEqualTo(6); // 5 + 1
 
             then(submissionRepository).should(times(1)).findById(videoId);
             then(userStatRepository).should(times(1)).findById(userId);
-            then(submissionRepository).should(times(1))
-                .getUserTopProblems(userId, StatusType.ACCEPTED, Pageable.ofSize(50));
-            then(userRatingUtil).should(times(1))
-                .calculateUserRating(List.of(1300, 1250, 1200), 10, 6, 3);
+            then(userDataAggregationService).should(times(1))
+                .recalculateAndUpdateUserRating(userId);
         }
 
         @Test
@@ -252,13 +204,8 @@ class AdminSubmissionServiceTest {
             then(submissionRepository).should(times(1)).findById(videoId);
             then(userStatRepository).should(times(1)).findById(userId);
             // REJECTED의 경우 레이팅 계산 관련 메서드는 호출되지 않아야 함
-            then(submissionRepository).should(times(0))
-                .getUserTopProblems(userId, StatusType.ACCEPTED, Pageable.ofSize(50));
-            then(userRatingUtil).should(times(0))
-                .calculateUserRating(org.mockito.ArgumentMatchers.any(),
-                    org.mockito.ArgumentMatchers.anyInt(),
-                    org.mockito.ArgumentMatchers.anyInt(),
-                    org.mockito.ArgumentMatchers.anyInt());
+            then(userDataAggregationService).should(times(0))
+                .recalculateAndUpdateUserRating(userId);
         }
 
         @Test
