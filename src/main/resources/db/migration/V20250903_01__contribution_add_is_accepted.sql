@@ -1,2 +1,2 @@
 ALTER TABLE contributions
-    ADD COLUMN is_accepted BOOLEAN DEFAULT FALSE;
+    ADD COLUMN is_accepted BOOLEAN NOT NULL DEFAULT FALSE;
