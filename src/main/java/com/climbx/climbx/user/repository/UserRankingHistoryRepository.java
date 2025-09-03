@@ -33,7 +33,6 @@ public interface UserRankingHistoryRepository extends
                  AND h2.criteria = h.criteria
                  AND DATE(h2.createdAt) = DATE(h.createdAt)
            )
-         GROUP BY DATE(h.createdAt)
          ORDER BY DATE(h.createdAt) ASC
         """)
     List<DailyHistoryResponseDto> getUserDailyHistory(
