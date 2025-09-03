@@ -13,6 +13,9 @@ import com.climbx.climbx.admin.submission.dto.SubmissionReviewResponseDto;
 import com.climbx.climbx.admin.submission.exception.StatusModifyToPendingException;
 import com.climbx.climbx.admin.submission.service.AdminSubmissionService;
 import com.climbx.climbx.common.enums.StatusType;
+import com.climbx.climbx.problem.entity.ProblemEntity;
+import com.climbx.climbx.problem.repository.ContributionRepository;
+import com.climbx.climbx.problem.service.ProblemService;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.submission.exception.PendingSubmissionNotFoundException;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
@@ -23,9 +26,6 @@ import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
 import com.climbx.climbx.user.util.UserRatingUtil;
 import com.climbx.climbx.video.entity.VideoEntity;
-import com.climbx.climbx.problem.entity.ProblemEntity;
-import com.climbx.climbx.problem.repository.ContributionRepository;
-import com.climbx.climbx.problem.service.ProblemService;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -110,7 +110,8 @@ class AdminSubmissionServiceTest {
                 .willReturn(Optional.of(submission));
             given(userStatRepository.findById(userId))
                 .willReturn(Optional.of(userStat));
-            given(contributionRepository.findByUserIdAndProblemId(userId, problemEntity.problemId()))
+            given(
+                contributionRepository.findByUserIdAndProblemId(userId, problemEntity.problemId()))
                 .willReturn(Optional.empty());
 
             // When
