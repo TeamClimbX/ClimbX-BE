@@ -201,24 +201,25 @@ public class ProblemService {
         ProblemEntity problem = problemRepository.findById(problemId)
             .orElseThrow(() -> new ProblemNotFoundException(problemId));
 
+        ContributionEntity contribution = ContributionEntity.builder()
+            .userAccountEntity(user)
+            .problemEntity(problem)
+            .tier(voteRequest.tier())
+            .comment(voteRequest.comment())
+            .isAccepted(isAlreadyAccepted)
+            .build();
+
+        contributionRepository.save(contribution);
+
         List<ContributionTagEntity> votedTags = voteRequest.tags().stream()
             .map(tag -> ContributionTagEntity.builder()
+                .contributionEntity(contribution)
                 .tag(tag)
                 .build()
             )
             .toList();
 
-        ContributionEntity contribution = ContributionEntity.builder()
-            .userAccountEntity(user)
-            .problemEntity(problem)
-            .tier(voteRequest.tier())
-            .contributionTags(votedTags)
-            .comment(voteRequest.comment())
-            .isAccepted(isAlreadyAccepted)
-            .build();
-
         contributionTagRepository.saveAll(votedTags);
-        contributionRepository.save(contribution);
 
         if (isAlreadyAccepted) {
             log.info("User {} has already accepted problem {}, marking vote as accepted",
