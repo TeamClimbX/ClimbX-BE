@@ -2,13 +2,13 @@ package com.climbx.climbx.problem;
 
 import com.climbx.climbx.common.annotation.SuccessStatus;
 import com.climbx.climbx.common.enums.ActiveStatusType;
-import com.climbx.climbx.problem.dto.ContributionRequestDto;
 import com.climbx.climbx.gym.enums.GymTierType;
-import com.climbx.climbx.problem.enums.HoldColorType;
+import com.climbx.climbx.problem.dto.ContributionRequestDto;
 import com.climbx.climbx.problem.dto.ContributionResponseDto;
 import com.climbx.climbx.problem.dto.ProblemCreateRequestDto;
 import com.climbx.climbx.problem.dto.ProblemCreateResponseDto;
 import com.climbx.climbx.problem.dto.ProblemInfoResponseDto;
+import com.climbx.climbx.problem.enums.HoldColorType;
 import com.climbx.climbx.problem.enums.ProblemTierType;
 import com.climbx.climbx.problem.service.ProblemService;
 import jakarta.validation.Valid;
@@ -98,6 +98,7 @@ public class ProblemController implements ProblemApiDocumentation {
         UUID problemId,
 
         @RequestBody
+
         ContributionRequestDto voteRequest
     ) {
         log.info("문제 투표: userId={}, problemId={}, tier={}, tags={}", userId, problemId,

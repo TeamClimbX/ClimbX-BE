@@ -211,15 +211,17 @@ public class ProblemService {
 
         contributionRepository.save(contribution);
 
-        List<ContributionTagEntity> votedTags = voteRequest.tags().stream()
-            .map(tag -> ContributionTagEntity.builder()
-                .contributionEntity(contribution)
-                .tag(tag)
-                .build()
-            )
-            .toList();
-
-        contributionTagRepository.saveAll(votedTags);
+        List<ContributionTagEntity> votedTags = List.of();
+        if (voteRequest.tags() != null && !voteRequest.tags().isEmpty()) {
+            votedTags = voteRequest.tags().stream()
+                .map(tag -> ContributionTagEntity.builder()
+                    .contributionEntity(contribution)
+                    .tag(tag)
+                    .build()
+                )
+                .toList();
+            contributionTagRepository.saveAll(votedTags);
+        }
 
         if (isAlreadyAccepted) {
             log.info("User {} has already accepted problem {}, marking vote as accepted",
