@@ -100,6 +100,14 @@ public class UserStatEntity extends BaseTimeEntity {
         this.contributionCount++;
     }
 
+    public void incrementRatingBySubmission(int amount) {
+        rating += amount;
+    }
+
+    public void incrementRatingByContribution(int amount) {
+        rating += amount;
+    }
+
     public void setRating(Integer rating) {
         this.rating = rating;
     }
