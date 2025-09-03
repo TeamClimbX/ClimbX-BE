@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ContributionRepository extends JpaRepository<ContributionEntity, Long> {
@@ -29,6 +30,7 @@ public interface ContributionRepository extends JpaRepository<ContributionEntity
         );
     }
 
+    @EntityGraph(attributePaths = {"contributionTags"})
     Optional<ContributionEntity> findByUserAccountEntity_UserIdAndProblemEntity_ProblemId(
         Long userId, UUID problemId);
 
