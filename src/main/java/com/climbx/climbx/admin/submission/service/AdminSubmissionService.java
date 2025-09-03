@@ -4,6 +4,8 @@ import com.climbx.climbx.admin.submission.dto.SubmissionReviewRequestDto;
 import com.climbx.climbx.admin.submission.dto.SubmissionReviewResponseDto;
 import com.climbx.climbx.admin.submission.exception.StatusModifyToPendingException;
 import com.climbx.climbx.common.enums.StatusType;
+import com.climbx.climbx.problem.repository.ContributionRepository;
+import com.climbx.climbx.problem.service.ProblemService;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.submission.exception.PendingSubmissionNotFoundException;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
@@ -26,6 +28,8 @@ public class AdminSubmissionService {
 
     private final SubmissionRepository submissionRepository;
     private final UserStatRepository userStatRepository;
+    private final ContributionRepository contributionRepository;
+    private final ProblemService problemService;
 
     @Transactional
     public SubmissionReviewResponseDto reviewSubmission(
@@ -50,6 +54,7 @@ public class AdminSubmissionService {
             submission.videoId(), submission.status(), submission.statusReason());
 
         Long userId = submission.videoEntity().userId();
+        UUID problemId = submission.problemEntity().problemId();
 
         UserStatEntity userStat = userStatRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
@@ -70,6 +75,19 @@ public class AdminSubmissionService {
             userStat.setRating(rating.totalRating());
             userStat.setTopProblemRating(rating.topProblemRating());
             // Category Rating은 batch에서 처리
+
+            contributionRepository.findByUserIdAndProblemId(
+                userId,
+                problemId
+            ).ifPresent(
+                c -> {
+                    problemService.applyVoteToProblem(
+                        submission.problemEntity(),
+                        c,
+                        c.contributionTags()
+                    );
+                }
+            );
 
             log.info("User {} (ID: {}) new rating: {}",
                 userStat.userAccountEntity().nickname(),

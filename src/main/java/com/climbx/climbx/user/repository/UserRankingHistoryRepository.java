@@ -19,7 +19,7 @@ public interface UserRankingHistoryRepository extends
     @Query("""
         SELECT new com.climbx.climbx.user.dto.DailyHistoryResponseDto(
             DATE(h.createdAt),
-            MIN(h.value)
+            h.value
         )
           FROM UserRankingHistoryEntity h
          WHERE h.userId = :userId
@@ -27,10 +27,10 @@ public interface UserRankingHistoryRepository extends
            AND (:from IS NULL OR DATE(h.createdAt) >= :from)
            AND (:to IS NULL OR DATE(h.createdAt) <= :to)
            AND h.id = (
-               SELECT MIN(h2.id) 
-               FROM UserRankingHistoryEntity h2 
-               WHERE h2.userId = h.userId 
-                 AND h2.criteria = h.criteria 
+               SELECT MIN(h2.id)
+               FROM UserRankingHistoryEntity h2
+               WHERE h2.userId = h.userId
+                 AND h2.criteria = h.criteria
                  AND DATE(h2.createdAt) = DATE(h.createdAt)
            )
          GROUP BY DATE(h.createdAt)
