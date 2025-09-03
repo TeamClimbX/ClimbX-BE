@@ -55,10 +55,18 @@ public class ContributionEntity extends BaseTimeEntity {
     @Column(name = "comment", length = 512) // nullable
     private String comment; // 예시: "문제 어디가 어려웠고, 추천할 만한 문제인지 등
 
+    @Builder.Default
+    @Column(name = "is_accepted", nullable = false)
+    private Boolean isAccepted = false; // 심사 완료 여부
+
     public static VoteTierDto toVoteTierDto(ContributionEntity c) {
         return VoteTierDto.builder()
             .tier(c.tier())
             .dateTime(c.createdAt())
             .build();
+    }
+
+    public void accept() {
+        this.isAccepted = true;
     }
 }

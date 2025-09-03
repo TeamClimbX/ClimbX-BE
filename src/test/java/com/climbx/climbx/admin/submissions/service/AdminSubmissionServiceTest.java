@@ -23,6 +23,9 @@ import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
 import com.climbx.climbx.user.util.UserRatingUtil;
 import com.climbx.climbx.video.entity.VideoEntity;
+import com.climbx.climbx.problem.entity.ProblemEntity;
+import com.climbx.climbx.problem.repository.ContributionRepository;
+import com.climbx.climbx.problem.service.ProblemService;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -48,6 +51,12 @@ class AdminSubmissionServiceTest {
     @Mock
     private UserStatRepository userStatRepository;
 
+    @Mock
+    private ContributionRepository contributionRepository;
+
+    @Mock
+    private ProblemService problemService;
+
     @Nested
     @DisplayName("reviewSubmission 메서드 테스트")
     class ReviewSubmissionTest {
@@ -72,10 +81,15 @@ class AdminSubmissionServiceTest {
                 .userId(userId)
                 .build();
 
+            ProblemEntity problemEntity = ProblemEntity.builder()
+                .problemId(UUID.randomUUID())
+                .build();
+
             SubmissionEntity submission = SubmissionEntity.builder()
                 .videoId(videoId)
                 .status(StatusType.PENDING)
                 .videoEntity(videoEntity)
+                .problemEntity(problemEntity)
                 .build();
 
             UserAccountEntity userAccount = UserAccountEntity.builder()
@@ -96,6 +110,8 @@ class AdminSubmissionServiceTest {
                 .willReturn(Optional.of(submission));
             given(userStatRepository.findById(userId))
                 .willReturn(Optional.of(userStat));
+            given(contributionRepository.findByUserIdAndProblemId(userId, problemEntity.problemId()))
+                .willReturn(Optional.empty());
 
             // When
             try (MockedStatic<UserRatingUtil> mockedStatic = mockStatic(UserRatingUtil.class)) {
@@ -150,10 +166,15 @@ class AdminSubmissionServiceTest {
                 .userId(userId)
                 .build();
 
+            ProblemEntity problemEntity = ProblemEntity.builder()
+                .problemId(UUID.randomUUID())
+                .build();
+
             SubmissionEntity submission = SubmissionEntity.builder()
                 .videoId(videoId)
                 .status(StatusType.PENDING)
                 .videoEntity(videoEntity)
+                .problemEntity(problemEntity)
                 .build();
 
             given(submissionRepository.findById(videoId))
@@ -187,10 +208,15 @@ class AdminSubmissionServiceTest {
                 .userId(userId)
                 .build();
 
+            ProblemEntity problemEntity = ProblemEntity.builder()
+                .problemId(UUID.randomUUID())
+                .build();
+
             SubmissionEntity submission = SubmissionEntity.builder()
                 .videoId(videoId)
                 .status(StatusType.PENDING)
                 .videoEntity(videoEntity)
+                .problemEntity(problemEntity)
                 .build();
 
             UserAccountEntity userAccount = UserAccountEntity.builder()
