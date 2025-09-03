@@ -33,9 +33,7 @@ spring:
 
   sql:
     init:
-      mode: always
+      mode: never
       platform: mysql
       encoding: UTF-8
       schema-locations: [ ]
-      data-locations:
-        - classpath:db/init/*.sql
