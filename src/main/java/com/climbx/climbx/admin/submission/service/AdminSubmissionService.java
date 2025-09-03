@@ -54,7 +54,7 @@ public class AdminSubmissionService {
             submission.videoId(), submission.status(), submission.statusReason());
 
         Long userId = submission.videoEntity().userId();
-        UUID problemID = submission.problemEntity().problemId();
+        UUID problemId = submission.problemEntity().problemId();
 
         UserStatEntity userStat = userStatRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
@@ -78,7 +78,7 @@ public class AdminSubmissionService {
 
             contributionRepository.findByUserIdAndProblemId(
                 userId,
-                problemID
+                problemId
             ).ifPresent(
                 c -> {
                     problemService.applyVoteToProblem(
