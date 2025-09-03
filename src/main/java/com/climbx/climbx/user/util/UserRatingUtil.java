@@ -33,17 +33,12 @@ public class UserRatingUtil {
         return (int) Math.round(100 * (1 - Math.pow(0.9, contributionCount)));
     }
 
-    public RatingResponseDto calculateUserRating(
-        List<Integer> topProblemRatings,
+    public static RatingResponseDto calculateUserRating(
+        int topProblemScore,
         int submissionCount,
         int solvedCount,
         int contributionCount
     ) {
-        int topProblemScore = topProblemRatings.stream()
-            .mapToInt(Integer::intValue)
-            .map(rating -> ProblemTierType.fromValue(rating).value())
-            .sum();
-
         int submissionCountScore = calculateSubmissionScore(submissionCount);
 
         int solvedCountScore = calculateSolvedScore(solvedCount);

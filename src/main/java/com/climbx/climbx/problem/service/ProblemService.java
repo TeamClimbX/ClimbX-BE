@@ -5,7 +5,6 @@ import com.climbx.climbx.common.enums.ErrorCode;
 import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.common.exception.InvalidParameterException;
 import com.climbx.climbx.common.service.S3Service;
-import com.climbx.climbx.problem.util.ProblemRatingUtil;
 import com.climbx.climbx.gym.entity.GymAreaEntity;
 import com.climbx.climbx.gym.entity.GymEntity;
 import com.climbx.climbx.gym.enums.GymTierType;
@@ -30,12 +29,14 @@ import com.climbx.climbx.problem.repository.ContributionRepository;
 import com.climbx.climbx.problem.repository.ContributionTagRepository;
 import com.climbx.climbx.problem.repository.ProblemRepository;
 import com.climbx.climbx.problem.repository.ProblemTagRepository;
+import com.climbx.climbx.problem.util.ProblemRatingUtil;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserAccountRepository;
+import com.climbx.climbx.user.util.UserRatingUtil;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -209,7 +210,16 @@ public class ProblemService {
         );
 
         UserStatEntity userStat = user.userStatEntity();
+
+        // 기여 개수 증가 및 기여 점수 증분값 계산
+        int prevContributionRating = UserRatingUtil.calculateContributionScore(
+            userStat.contributionCount());
         userStat.incrementContributionCount();
+        int newContributionRating = UserRatingUtil.calculateContributionScore(
+            userStat.contributionCount());
+
+        // 기여에 따른 유저 레이팅 증분 반영
+        userStat.incrementRatingByContribution(newContributionRating - prevContributionRating);
 
         return ProblemInfoResponseDto.from(problem, problem.gymEntity(), problem.gymArea());
     }
