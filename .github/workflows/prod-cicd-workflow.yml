@@ -86,9 +86,9 @@ jobs:
           -v ${{ github.workspace }}/src/main/resources/db/migration:/flyway/sql \
           --network host \
           flyway/flyway:latest \
-          -url=${{ secrets.DB_PROD_URL}} \
-          -user=${{ secrets.DB_PROD_USER}} \
-          -password=${{ secrets.DB_PROD_PASSWORD }} \
+          -url='${{ secrets.DB_PROD_URL}}' \
+          -user='${{ secrets.DB_PROD_USER}}' \
+          -password='${{ secrets.DB_PROD_PASSWORD }}' \
           migrate
 
   continuous-deployment:
