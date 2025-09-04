@@ -17,10 +17,16 @@ spring:
       connection-timeout: 20000
       validation-timeout: 3000
 
+  # Production 환경에서는 flyway 활성화, JPA ddl-auto validate 설정
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
   jpa:
     hibernate:
       ddl-auto: validate
-    defer-datasource-initialization: true
+    defer-datasource-initialization: false
     properties:
       hibernate:
         globally_quoted_identifiers: true

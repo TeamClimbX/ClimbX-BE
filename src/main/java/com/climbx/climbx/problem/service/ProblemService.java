@@ -2,10 +2,8 @@ package com.climbx.climbx.problem.service;
 
 import com.climbx.climbx.common.enums.ActiveStatusType;
 import com.climbx.climbx.common.enums.ErrorCode;
-import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.common.exception.InvalidParameterException;
 import com.climbx.climbx.common.service.S3Service;
-import com.climbx.climbx.problem.util.ProblemRatingUtil;
 import com.climbx.climbx.gym.entity.GymAreaEntity;
 import com.climbx.climbx.gym.entity.GymEntity;
 import com.climbx.climbx.gym.enums.GymTierType;
@@ -22,7 +20,6 @@ import com.climbx.climbx.problem.entity.ProblemTagEntity;
 import com.climbx.climbx.problem.enums.HoldColorType;
 import com.climbx.climbx.problem.enums.ProblemTagType;
 import com.climbx.climbx.problem.enums.ProblemTierType;
-import com.climbx.climbx.problem.exception.ForbiddenProblemVoteException;
 import com.climbx.climbx.problem.exception.GymAreaNotFoundException;
 import com.climbx.climbx.problem.exception.ProblemAlreadyDeletedException;
 import com.climbx.climbx.problem.exception.ProblemNotFoundException;
@@ -30,12 +27,13 @@ import com.climbx.climbx.problem.repository.ContributionRepository;
 import com.climbx.climbx.problem.repository.ContributionTagRepository;
 import com.climbx.climbx.problem.repository.ProblemRepository;
 import com.climbx.climbx.problem.repository.ProblemTagRepository;
-import com.climbx.climbx.submission.entity.SubmissionEntity;
+import com.climbx.climbx.problem.util.ProblemRatingUtil;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserAccountRepository;
+import com.climbx.climbx.user.util.UserRatingUtil;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -137,65 +135,39 @@ public class ProblemService {
     }
 
     @Transactional
-    public ProblemInfoResponseDto voteProblem(
-        Long userId,
-        UUID problemId,
-        ContributionRequestDto voteRequest
+    public void applyVoteToProblem(
+        ProblemEntity problem,
+        ContributionEntity contribution,
+        List<ContributionTagEntity> votedTags
     ) {
-        log.info("난이도 투표 요청: userId={}, problemId={}, vote={}",
-            userId, problemId, voteRequest);
+        contribution.accept();
 
-        UserAccountEntity user = userAccountRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(userId));
-
-        SubmissionEntity submission = submissionRepository.findByProblemIdAndVideoEntity_UserIdAndStatus(
-            problemId,
-            userId,
-            StatusType.ACCEPTED
-        ).orElseThrow(() -> new ForbiddenProblemVoteException(problemId, userId));
-
-        ProblemEntity problem = submission.problemEntity();
-
-        ContributionEntity contribution = ContributionEntity.builder()
-            .userAccountEntity(user)
-            .problemEntity(problem)
-            .tier(voteRequest.tier())
-            .comment(voteRequest.comment())
-            .build();
-
-        contributionRepository.save(contribution);
-
-        if (voteRequest.tags() != null) {
-            voteRequest.tags().forEach(tag -> {
-                contributionTagRepository.save(
-                    ContributionTagEntity.builder()
-                        .contributionEntity(contribution)
+        votedTags.forEach(t -> {
+            ProblemTagType tag = t.tag();
+            ProblemTagEntity problemTag = problemTagRepository.findByProblemEntityAndTag(
+                    problem, tag)
+                .orElseGet(() -> problemTagRepository.save(
+                    ProblemTagEntity.builder()
+                        .problemEntity(problem)
                         .tag(tag)
                         .build()
-                );
+                ));
 
-                ProblemTagEntity problemTag = problemTagRepository.findByProblemEntityAndTag(
-                        problem, tag)
-                    .orElseGet(() -> problemTagRepository.save(
-                        ProblemTagEntity.builder()
-                            .problemEntity(problem)
-                            .tag(tag)
-                            .build()
-                    ));
+            problemTag.addPriority(1); // TODO: 추후 유저 레이팅에 따른 영향력 설계 필요
+        });
 
-                problemTag.addPriority(1); // TODO: 추후 유저 레이팅에 따른 영향력 설계 필요
-            });
-        }
-
+        // Recalculate problem rating and tier from all contributions
         Integer newProblemRating = problemRatingUtil.calculateProblemTier(
             contributionRepository.findAllByProblemEntity_ProblemId(problem.problemId())
                 .stream()
+                .filter(ContributionEntity::isAccepted)
                 .map(ContributionEntity::toVoteTierDto)
                 .toList()
         );
 
         ProblemTierType newProblemTier = ProblemTierType.fromValue(newProblemRating);
 
+        // Update primary/secondary tags from accumulated priorities
         List<ProblemTagType> primary2tags = problemTagRepository
             .findTop2ByProblemEntityOrderByPriorityDesc(problem)
             .stream()
@@ -207,9 +179,68 @@ public class ProblemService {
             newProblemTier,
             primary2tags
         );
+    }
+
+    @Transactional
+    public ProblemInfoResponseDto voteProblem(
+        Long userId,
+        UUID problemId,
+        ContributionRequestDto voteRequest
+    ) {
+        log.info("난이도 투표 요청: userId={}, problemId={}, vote={}",
+            userId, problemId, voteRequest);
+
+        UserAccountEntity user = userAccountRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+
+        boolean isAlreadyAccepted = submissionRepository.isAcceptedSubmissionExist(
+            userId,
+            problemId
+        );
+
+        ProblemEntity problem = problemRepository.findById(problemId)
+            .orElseThrow(() -> new ProblemNotFoundException(problemId));
+
+        ContributionEntity contribution = ContributionEntity.builder()
+            .userAccountEntity(user)
+            .problemEntity(problem)
+            .tier(voteRequest.tier())
+            .comment(voteRequest.comment())
+            .isAccepted(isAlreadyAccepted)
+            .build();
+
+        contributionRepository.save(contribution);
+
+        List<ContributionTagEntity> votedTags = List.of();
+        if (voteRequest.tags() != null && !voteRequest.tags().isEmpty()) {
+            votedTags = voteRequest.tags().stream()
+                .map(tag -> ContributionTagEntity.builder()
+                    .contributionEntity(contribution)
+                    .tag(tag)
+                    .build()
+                )
+                .toList();
+            contributionTagRepository.saveAll(votedTags);
+        }
+
+        if (isAlreadyAccepted) {
+            log.info("User {} has already accepted problem {}, marking vote as accepted",
+                userId, problemId);
+
+            applyVoteToProblem(problem, contribution, votedTags);
+        }
 
         UserStatEntity userStat = user.userStatEntity();
+
+        // 기여 개수 증가 및 기여 점수 증분값 계산
+        int prevContributionRating = UserRatingUtil.calculateContributionScore(
+            userStat.contributionCount());
         userStat.incrementContributionCount();
+        int newContributionRating = UserRatingUtil.calculateContributionScore(
+            userStat.contributionCount());
+
+        // 기여에 따른 유저 레이팅 증분 반영
+        userStat.incrementRatingByContribution(newContributionRating - prevContributionRating);
 
         return ProblemInfoResponseDto.from(problem, problem.gymEntity(), problem.gymArea());
     }

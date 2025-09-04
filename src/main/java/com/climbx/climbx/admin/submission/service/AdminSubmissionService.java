@@ -4,8 +4,8 @@ import com.climbx.climbx.admin.submission.dto.SubmissionReviewRequestDto;
 import com.climbx.climbx.admin.submission.dto.SubmissionReviewResponseDto;
 import com.climbx.climbx.admin.submission.exception.StatusModifyToPendingException;
 import com.climbx.climbx.common.enums.StatusType;
-import com.climbx.climbx.user.util.UserRatingUtil;
-import com.climbx.climbx.problem.dto.ProblemInfoResponseDto;
+import com.climbx.climbx.problem.repository.ContributionRepository;
+import com.climbx.climbx.problem.service.ProblemService;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.submission.exception.PendingSubmissionNotFoundException;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
@@ -13,11 +13,10 @@ import com.climbx.climbx.user.dto.RatingResponseDto;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
-import java.util.List;
+import com.climbx.climbx.user.util.UserRatingUtil;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +28,8 @@ public class AdminSubmissionService {
 
     private final SubmissionRepository submissionRepository;
     private final UserStatRepository userStatRepository;
-    private final UserRatingUtil userRatingUtil;
+    private final ContributionRepository contributionRepository;
+    private final ProblemService problemService;
 
     @Transactional
     public SubmissionReviewResponseDto reviewSubmission(
@@ -54,6 +54,7 @@ public class AdminSubmissionService {
             submission.videoId(), submission.status(), submission.statusReason());
 
         Long userId = submission.videoEntity().userId();
+        UUID problemId = submission.problemEntity().problemId();
 
         UserStatEntity userStat = userStatRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
@@ -64,8 +65,8 @@ public class AdminSubmissionService {
 
         if (submission.status() == StatusType.ACCEPTED) {
             userStat.incrementSolvedProblemsCount();
-            RatingResponseDto rating = userRatingUtil.calculateUserRating(
-                getUserTopProblemRatings(userId),
+            RatingResponseDto rating = UserRatingUtil.calculateUserRating(
+                userStat.topProblemRating(),
                 userStat.submissionCount(),
                 userStat.solvedCount(),
                 userStat.contributionCount()
@@ -74,6 +75,19 @@ public class AdminSubmissionService {
             userStat.setRating(rating.totalRating());
             userStat.setTopProblemRating(rating.topProblemRating());
             // Category Rating은 batch에서 처리
+
+            contributionRepository.findByUserIdAndProblemId(
+                userId,
+                problemId
+            ).ifPresent(
+                c -> {
+                    problemService.applyVoteToProblem(
+                        submission.problemEntity(),
+                        c,
+                        c.contributionTags()
+                    );
+                }
+            );
 
             log.info("User {} (ID: {}) new rating: {}",
                 userStat.userAccountEntity().nickname(),
@@ -85,15 +99,5 @@ public class AdminSubmissionService {
             .status(submission.status())
             .reason(submission.statusReason())
             .build();
-    }
-
-    private List<Integer> getUserTopProblemRatings(Long userId) {
-        return submissionRepository.getUserTopProblems(
-                userId,
-                StatusType.ACCEPTED,
-                Pageable.ofSize(50)
-            ).stream()
-            .map(ProblemInfoResponseDto::rating)
-            .toList();
     }
 }

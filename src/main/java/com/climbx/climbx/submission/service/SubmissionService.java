@@ -19,6 +19,7 @@ import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserAccountRepository;
+import com.climbx.climbx.user.util.UserRatingUtil;
 import com.climbx.climbx.video.entity.VideoEntity;
 import com.climbx.climbx.video.exception.VideoNotFoundException;
 import com.climbx.climbx.video.repository.VideoRepository;
@@ -51,10 +52,9 @@ public class SubmissionService {
         Integer ratingTo,
         Pageable pageable
     ) {
-        UserAccountEntity user = userAccountRepository.findByNickname(nickname)
-            .orElseThrow(() -> new UserNotFoundException(nickname));
-
-        Long userId = user.userId();
+        Long userId = userAccountRepository.findByNickname(nickname)
+            .map(UserAccountEntity::userId)
+            .orElse(null);
 
         // 제출 목록 조회 (Page 객체로 반환)
         Page<SubmissionEntity> submissionPage = submissionRepository.findSubmissionsWithFilters(
@@ -115,7 +115,14 @@ public class SubmissionService {
             .orElseThrow(() -> new UserNotFoundException(userId));
 
         UserStatEntity userStat = user.userStatEntity();
+
+        int prevSubmissionRating = UserRatingUtil.calculateSubmissionScore(
+            userStat.submissionCount());
         userStat.incrementSubmissionCount();
+        int newSubmissionRating = UserRatingUtil.calculateSubmissionScore(
+            userStat.submissionCount());
+
+        userStat.incrementRatingBySubmission(newSubmissionRating - prevSubmissionRating);
 
         return SubmissionResponseDto.from(submissionEntity);
     }

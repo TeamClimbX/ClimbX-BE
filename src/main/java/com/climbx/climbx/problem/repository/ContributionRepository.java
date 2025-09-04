@@ -2,8 +2,10 @@ package com.climbx.climbx.problem.repository;
 
 import com.climbx.climbx.problem.entity.ContributionEntity;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ContributionRepository extends JpaRepository<ContributionEntity, Long> {
@@ -26,5 +28,13 @@ public interface ContributionRepository extends JpaRepository<ContributionEntity
         return findAllByProblemEntity_ProblemIdAndUserAccountEntityIsNotNullOrderByCreatedAtDesc(
             problemId, pageable
         );
+    }
+
+    @EntityGraph(attributePaths = {"contributionTags"})
+    Optional<ContributionEntity> findByUserAccountEntity_UserIdAndProblemEntity_ProblemId(
+        Long userId, UUID problemId);
+
+    default Optional<ContributionEntity> findByUserIdAndProblemId(Long userId, UUID problemId) {
+        return findByUserAccountEntity_UserIdAndProblemEntity_ProblemId(userId, problemId);
     }
 }

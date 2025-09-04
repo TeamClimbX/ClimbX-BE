@@ -8,7 +8,6 @@ import com.climbx.climbx.user.dto.DailyHistoryResponseDto;
 import com.climbx.climbx.user.dto.UserTagRatingDto;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.hibernate.annotations.SQLRestriction;
@@ -203,7 +202,15 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
 
     // ProblemEntity를 fetch join
     @EntityGraph(attributePaths = "problemEntity")
-    Optional<SubmissionEntity> findByProblemIdAndVideoEntity_UserIdAndStatus(
-        UUID problemId, Long userId, StatusType status
+    boolean existsByProblemIdAndVideoEntity_UserIdAndStatus(
+        UUID problemId, Long videoEntity_userId, StatusType status
     );
+
+    default boolean isAcceptedSubmissionExist(Long userId, UUID problemId) {
+        return existsByProblemIdAndVideoEntity_UserIdAndStatus(
+            problemId,
+            userId,
+            StatusType.ACCEPTED
+        );
+    }
 }
