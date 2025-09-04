@@ -11,22 +11,6 @@ jobs:
     name: Build and Push to ECR
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:9.3.0
-        env:
-          MYSQL_DATABASE: climbx
-          MYSQL_USER: dev_user
-          MYSQL_PASSWORD: dev_password
-          MYSQL_ROOT_PASSWORD: root_password
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
