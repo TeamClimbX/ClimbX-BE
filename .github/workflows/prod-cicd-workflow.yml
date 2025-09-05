@@ -11,22 +11,6 @@ jobs:
     name: Build and Push to ECR
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:9.3.0
-        env:
-          MYSQL_DATABASE: climbx
-          MYSQL_USER: prod_user
-          MYSQL_PASSWORD: prod_password
-          MYSQL_ROOT_PASSWORD: root_password
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -41,10 +25,6 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build with Gradle
-        env:
-          DB_URL: jdbc:mysql://localhost:3306/climbx?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
-          DB_USER: prod_user
-          DB_PASSWORD: prod_password
         run: ./gradlew build
 
       - name: Configure AWS credentials

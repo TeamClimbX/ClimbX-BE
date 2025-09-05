@@ -25,10 +25,6 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build with Gradle
-        env:
-          DB_URL: jdbc:mysql://localhost:3306/climbx?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
-          DB_USER: dev_user
-          DB_PASSWORD: dev_password
         run: ./gradlew build
 
       - name: Configure AWS credentials
