@@ -1,6 +1,7 @@
 package com.climbx.climbx.video;
 
 import com.climbx.climbx.common.dto.ApiResponseDto;
+import com.climbx.climbx.video.dto.VideoDeleteResponseDto;
 import com.climbx.climbx.video.dto.VideoListResponseDto;
 import com.climbx.climbx.video.dto.VideoUploadRequestDto;
 import com.climbx.climbx.video.dto.VideoUploadResponseDto;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.validation.annotation.Validated;
 
 /**
@@ -139,4 +141,95 @@ public interface VideoApiDocumentation {
         )
     })
     List<VideoListResponseDto> getVideoList(String nickname);
+
+    @Operation(
+        summary = "비디오 삭제",
+        description = "사용자가 업로드한 비디오를 삭제합니다. 본인이 업로드한 비디오만 삭제할 수 있습니다."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "비디오 삭제 성공",
+            content = @Content(
+                schema = @Schema(implementation = ApiResponseDto.class),
+                examples = @ExampleObject(
+                    name = "비디오 삭제 성공",
+                    value = """
+                        {
+                          "httpStatus": 200,
+                          "statusMessage": "SUCCESS",
+                          "timeStamp": "2024-01-01T10:00:00Z",
+                          "responseTimeMs": 89,
+                          "path": "/api/videos/550e8400-e29b-41d4-a716-446655440000",
+                          "data": {
+                            "videoId": "550e8400-e29b-41d4-a716-446655440000",
+                            "message": "비디오가 성공적으로 삭제되었습니다."
+                          }
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증되지 않은 사용자",
+            content = @Content(
+                schema = @Schema(implementation = ApiResponseDto.class),
+                examples = @ExampleObject(
+                    name = "인증 실패",
+                    value = """
+                        {
+                          "httpStatus": 401,
+                          "statusMessage": "인증이 필요합니다.",
+                          "timeStamp": "2024-01-01T10:00:00Z",
+                          "responseTimeMs": 45,
+                          "path": "/api/videos/550e8400-e29b-41d4-a716-446655440000",
+                          "data": null
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "권한이 없는 사용자 (본인 비디오가 아님)",
+            content = @Content(
+                schema = @Schema(implementation = ApiResponseDto.class),
+                examples = @ExampleObject(
+                    name = "권한 없음",
+                    value = """
+                        {
+                          "httpStatus": 403,
+                          "statusMessage": "접근 권한이 없습니다.",
+                          "timeStamp": "2024-01-01T10:00:00Z",
+                          "responseTimeMs": 56,
+                          "path": "/api/videos/550e8400-e29b-41d4-a716-446655440000",
+                          "data": null
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "비디오를 찾을 수 없음",
+            content = @Content(
+                schema = @Schema(implementation = ApiResponseDto.class),
+                examples = @ExampleObject(
+                    name = "비디오 없음",
+                    value = """
+                        {
+                          "httpStatus": 404,
+                          "statusMessage": "비디오를 찾을 수 없습니다.",
+                          "timeStamp": "2024-01-01T10:00:00Z",
+                          "responseTimeMs": 23,
+                          "path": "/api/videos/550e8400-e29b-41d4-a716-446655440000",
+                          "data": null
+                        }
+                        """
+                )
+            )
+        )
+    })
+    VideoDeleteResponseDto deleteVideo(Long userId, UUID videoId);
 } 

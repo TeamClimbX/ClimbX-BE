@@ -1,15 +1,18 @@
 package com.climbx.climbx.video;
 
 import com.climbx.climbx.common.annotation.SuccessStatus;
+import com.climbx.climbx.video.dto.VideoDeleteResponseDto;
 import com.climbx.climbx.video.dto.VideoListResponseDto;
 import com.climbx.climbx.video.dto.VideoUploadRequestDto;
 import com.climbx.climbx.video.dto.VideoUploadResponseDto;
 import com.climbx.climbx.video.service.VideoService;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,5 +49,16 @@ public class VideoController implements VideoApiDocumentation {
     public List<VideoListResponseDto> getVideoList(@PathVariable String nickname) {
         log.info("사용자 비디오 목록 조회: nickname={}", nickname);
         return videoService.getVideoList(nickname);
+    }
+
+    @Override
+    @DeleteMapping("/{videoId}")
+    @SuccessStatus(value = HttpStatus.OK)
+    public VideoDeleteResponseDto deleteVideo(
+        @AuthenticationPrincipal Long userId,
+        @PathVariable UUID videoId
+    ) {
+        log.info("비디오 삭제 요청: userId={}, videoId={}", userId, videoId);
+        return videoService.deleteVideo(userId, videoId);
     }
 } 
