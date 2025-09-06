@@ -5,29 +5,13 @@ on:
 
   pull_request:
     branches: [ "develop" ]
-    types: [opened, reopened, synchronize, edited]
+    types: [ opened, reopened, synchronize, edited ]
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-
-    services:
-      mysql:
-        image: mysql:9.3.0
-        env:
-          MYSQL_DATABASE: climbx
-          MYSQL_USER: test_user
-          MYSQL_PASSWORD: test_password
-          MYSQL_ROOT_PASSWORD: root_password
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-
+    
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -37,6 +21,7 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+          cache: gradle
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
