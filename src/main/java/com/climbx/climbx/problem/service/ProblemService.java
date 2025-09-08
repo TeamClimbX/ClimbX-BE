@@ -135,15 +135,16 @@ public class ProblemService {
         contributionRepository.saveAll(defaultVotes);
 
         UserStatEntity userStat = userLookUpService.findUserById(userId).userStatEntity();
+
+        Integer prevContributionRating = UserRatingUtil.calculateContributionScore(
+            userStat.contributionCount());
+
         userStat.incrementContributionCount();
 
-        Integer totalRating = UserRatingUtil.calculateUserRating(
-            userStat.topProblemRating(),
-            userStat.submissionCount(),
-            userStat.solvedCount(),
-            userStat.contributionCount()
-        ).totalRating();
-        userStat.setRating(totalRating);
+        Integer newContributionRating = UserRatingUtil.calculateContributionScore(
+            userStat.contributionCount());
+
+        userStat.incrementRatingByContribution(newContributionRating - prevContributionRating);
 
         return ProblemCreateResponseDto.from(savedProblem);
     }
