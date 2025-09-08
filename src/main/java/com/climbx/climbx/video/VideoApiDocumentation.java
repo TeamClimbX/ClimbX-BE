@@ -5,12 +5,14 @@ import com.climbx.climbx.video.dto.VideoListResponseDto;
 import com.climbx.climbx.video.dto.VideoUploadRequestDto;
 import com.climbx.climbx.video.dto.VideoUploadResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.validation.annotation.Validated;
 
@@ -93,7 +95,14 @@ public interface VideoApiDocumentation {
         )
     })
     VideoUploadResponseDto createVideoUploadUrl(
+        @Parameter(hidden = true)
         Long userId,
+
+        @Parameter(
+            description = "영상 업로드 요청 데이터",
+            required = true
+        )
+        @Valid
         VideoUploadRequestDto videoUploadRequestDto
     );
 
