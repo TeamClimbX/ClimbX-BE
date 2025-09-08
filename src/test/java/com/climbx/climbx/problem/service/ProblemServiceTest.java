@@ -25,8 +25,12 @@ import com.climbx.climbx.problem.entity.ProblemEntity;
 import com.climbx.climbx.problem.enums.HoldColorType;
 import com.climbx.climbx.problem.enums.ProblemTierType;
 import com.climbx.climbx.problem.exception.GymAreaNotFoundException;
+import com.climbx.climbx.common.exception.InvalidParameterException;
 import com.climbx.climbx.problem.repository.ContributionRepository;
 import com.climbx.climbx.problem.repository.ProblemRepository;
+import com.climbx.climbx.user.entity.UserAccountEntity;
+import com.climbx.climbx.user.entity.UserStatEntity;
+import com.climbx.climbx.user.service.UserLookupService;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,6 +54,8 @@ public class ProblemServiceTest {
     private S3Service s3Service;
     @Mock
     private ContributionRepository contributionRepository;
+    @Mock
+    private UserLookupService userLookUpService;
 
     @InjectMocks
     private ProblemService problemService;
@@ -161,15 +167,25 @@ public class ProblemServiceTest {
                 .activeStatus(ActiveStatusType.ACTIVE)
                 .build();
 
+            UserStatEntity userStatEntity = UserStatEntity.builder().build();
+            UserAccountEntity userAccountEntity = UserAccountEntity.builder()
+                .userStatEntity(userStatEntity)
+                .build();
+            
             given(gymAreaRepository.findById(gymAreaId))
                 .willReturn(Optional.of(gymAreaEntity));
             given(s3Service.uploadProblemImage(any(), eq(gymAreaId), any()))
                 .willReturn(expectedCdnUrl);
             given(problemRepository.save(any(ProblemEntity.class)))
                 .willReturn(savedProblem);
+            given(contributionRepository.saveAll(any()))
+                .willReturn(List.of());
+            given(userLookUpService.findUserById(eq(1L)))
+                .willReturn(userAccountEntity);
 
             // when
-            ProblemCreateResponseDto result = problemService.registerProblem(request, problemImage);
+            Long userId = 1L;
+            ProblemCreateResponseDto result = problemService.registerProblem(userId, request, problemImage);
 
             // then
             then(gymAreaRepository).should(times(1)).findById(gymAreaId);
@@ -187,14 +203,12 @@ public class ProblemServiceTest {
         }
 
         @Test
-        @DisplayName("이미지 없이 문제를 생성하면, S3 업로드 없이 문제를 저장한다")
-        void createProblemWithoutImage() {
+        @DisplayName("이미지 없이 문제를 생성하면, InvalidParameterException이 발생한다")
+        void createProblemWithoutImageShouldThrowException() {
             // given
             Long gymAreaId = 1L;
             GymTierType localLevel = GymTierType.BLUE;
             HoldColorType holdColor = HoldColorType.BLUE;
-            Integer problemRating = 1600;
-            UUID problemId = UUID.randomUUID();
 
             ProblemCreateRequestDto request = ProblemCreateRequestDto.builder()
                 .gymAreaId(gymAreaId)
@@ -209,40 +223,20 @@ public class ProblemServiceTest {
                 .areaImageCdnUrl("https://cdn.example.com/area-image.jpg")
                 .build();
 
-            ProblemEntity savedProblem = ProblemEntity.builder()
-                .problemId(problemId)
-                .gymEntity(gymEntity)
-                .gymArea(gymAreaEntity)
-                .localLevel(localLevel)
-                .holdColor(holdColor)
-                .rating(problemRating)
-                .problemImageCdnUrl(null)
-                .activeStatus(ActiveStatusType.ACTIVE)
-                .build();
-
             given(gymAreaRepository.findById(gymAreaId))
                 .willReturn(Optional.of(gymAreaEntity));
-            given(problemRepository.save(any(ProblemEntity.class)))
-                .willReturn(savedProblem);
 
-            // when
-            MockMultipartFile multipartFile = new MockMultipartFile("file", "test.txt",
-                "text/plain", "test".getBytes());
-            ProblemCreateResponseDto result = problemService.registerProblem(request,
-                multipartFile);
+            // when & then
+            Long userId = 1L;
+            MockMultipartFile emptyFile = new MockMultipartFile("file", "test.txt",
+                "text/plain", new byte[0]); // empty file
+            
+            assertThatThrownBy(() -> problemService.registerProblem(userId, request, emptyFile))
+                .isInstanceOf(InvalidParameterException.class);
 
-            // then
             then(gymAreaRepository).should(times(1)).findById(gymAreaId);
-            then(s3Service).should(times(0)).uploadProblemImage(eq(problemId), anyLong(), any());
-            then(problemRepository).should(times(1)).save(any(ProblemEntity.class));
-
-            assertThat(result.problemId()).isEqualTo(problemId);
-            assertThat(result.gymAreaId()).isEqualTo(gymAreaId);
-            assertThat(result.localLevel()).isEqualTo(localLevel);
-            assertThat(result.holdColor()).isEqualTo(holdColor);
-            assertThat(result.problemRating()).isEqualTo(problemRating);
-            assertThat(result.problemImageCdnUrl()).isNull();
-            assertThat(result.activeStatus()).isEqualTo(ActiveStatusType.ACTIVE);
+            then(s3Service).should(times(0)).uploadProblemImage(any(), anyLong(), any());
+            then(problemRepository).should(times(0)).save(any(ProblemEntity.class));
         }
 
         @Test
@@ -260,7 +254,8 @@ public class ProblemServiceTest {
                 .willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> problemService.registerProblem(request, null))
+            Long userId = 1L;
+            assertThatThrownBy(() -> problemService.registerProblem(userId, request, null))
                 .isInstanceOf(GymAreaNotFoundException.class);
 
             then(gymAreaRepository).should(times(1)).findById(nonExistentGymAreaId);

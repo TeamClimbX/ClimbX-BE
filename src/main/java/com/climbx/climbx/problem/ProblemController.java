@@ -87,7 +87,7 @@ public class ProblemController implements ProblemApiDocumentation {
     ) {
         log.info("문제 생성: gymAreaId={}, localLevel={}, holdColor={}",
             request.gymAreaId(), request.localLevel(), request.holdColor());
-        return problemService.registerProblem(request, problemImage);
+        return problemService.registerProblem(userId, request, problemImage);
     }
 
     @Override

@@ -33,6 +33,7 @@ import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserAccountRepository;
+import com.climbx.climbx.user.service.UserLookupService;
 import com.climbx.climbx.user.util.UserRatingUtil;
 import java.util.List;
 import java.util.UUID;
@@ -59,6 +60,7 @@ public class ProblemService {
     private final ProblemTagRepository problemTagRepository;
     private final ProblemRatingUtil problemRatingUtil;
     private final S3Service s3Service;
+    private final UserLookupService userLookUpService;
 
     public List<ProblemInfoResponseDto> getProblemsWithFilters(
         Long gymId,
@@ -75,6 +77,7 @@ public class ProblemService {
 
     @Transactional
     public ProblemCreateResponseDto registerProblem(
+        Long userId,
         ProblemCreateRequestDto request,
         MultipartFile problemImage
     ) {
@@ -131,7 +134,8 @@ public class ProblemService {
 
         contributionRepository.saveAll(defaultVotes);
 
-        
+        UserStatEntity userStat = userLookUpService.findUserById(userId).userStatEntity();
+        userStat.incrementContributionCount();
 
         return ProblemCreateResponseDto.from(savedProblem);
     }
