@@ -2,7 +2,6 @@
 allowed-tools: Bash(git branch:*), Bash(git log:*), Bash(git diff:*), Read(.github/pull_request_template.md)
 argument-hint: 
 description: Create PR title and body using upstream/develop diff analysis
-model: sonnet
 ---
 
 # PR Command

@@ -2,7 +2,6 @@
 allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*)
 argument-hint: [message]
 description: Create well-formatted commits with smart staging and conventional commit format
-model: sonnet
 ---
 
 # Smart Git Commit
