@@ -43,7 +43,7 @@ Creates a Pull Request title and body by analyzing changes between upstream/deve
 $ /pr
 
 PR Title:
-[SWM-313] docs: Claude Code 설정 및 가이드 문서 정리
+[SWM-313] Claude Code 설정 및 가이드 문서 정리
 
 PR Body:
 ## 📝 작업 내용 (Description)
