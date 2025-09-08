@@ -137,6 +137,14 @@ public class ProblemService {
         UserStatEntity userStat = userLookUpService.findUserById(userId).userStatEntity();
         userStat.incrementContributionCount();
 
+        Integer totalRating = UserRatingUtil.calculateUserRating(
+            userStat.topProblemRating(),
+            userStat.submissionCount(),
+            userStat.solvedCount(),
+            userStat.contributionCount()
+        ).totalRating();
+        userStat.setRating(totalRating);
+
         return ProblemCreateResponseDto.from(savedProblem);
     }
 
