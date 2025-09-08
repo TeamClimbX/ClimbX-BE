@@ -1,7 +1,7 @@
 ---
 allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*)
 argument-hint: [message]
-description: Create well-formatted commits with conventional commit format and emoji
+description: Create well-formatted commits with smart staging and conventional commit format
 model: sonnet
 ---
 
@@ -21,11 +21,13 @@ Create well-formatted commit: $ARGUMENTS
 
 1. **Analyzes recent git history** by reading the last 5 commits to understand existing commit message conventions and patterns
 2. **Extracts ticket ID from branch name** if branch follows `feat/TICKET-ID` or similar pattern
-3. Checks which files are staged with `git status`
-4. If 0 files are staged, automatically adds all modified and new files with `git add`
-5. Performs a `git diff` to understand what changes are being committed
-6. Analyzes the diff to determine if multiple distinct logical changes are present
-7. If multiple distinct changes are detected, suggests breaking the commit into multiple smaller commits
+3. Checks the current staging status with `git status`
+4. Analyzes all changes (both staged and unstaged) with `git diff` and `git diff --cached`
+5. Determines if multiple distinct logical changes are present that should be split into separate commits
+6. **Smart commit strategy**:
+   - If changes should be split: Guides you through staging specific files for each logical commit using `git add <files>`
+   - If changes are cohesive: Stages all changes with `git add .` and creates a single commit
+7. For each commit, uses the appropriate staged files and creates a well-formatted commit message
 8. **Follows repository-specific conventions** based on recent commit history analysis and branch naming
 9. For each commit (or the single commit if not split), creates a commit message using the format `[TICKET-ID] type: description` when ticket ID is available
 
@@ -58,11 +60,17 @@ When analyzing the diff, consider splitting commits based on these criteria:
 
 - **Always analyze recent git history first** to understand and follow the project's commit message conventions
 - **Extract ticket ID from branch name** when branch follows patterns like `feat/SWM-309`, `fix/SWM-123`, etc.
-- If specific files are already staged, the command will only commit those files  
-- If no files are staged, it will automatically stage all modified and new files
+- **Intelligent commit splitting**: 
+  - Analyzes all changes to detect if they should be split into multiple logical commits
+  - When splitting is needed, uses `git add <specific-files>` to stage files for each individual commit
+  - When changes are cohesive, stages everything with `git add .` for a single commit
+  - Respects any files that are already staged and incorporates them into the commit strategy
 - The commit message will be constructed based on the changes detected and existing patterns
-- Before committing, the command will review the diff to identify if multiple commits would be more appropriate
-- If suggesting multiple commits, it will help you stage and commit the changes separately
+- **Multi-step commit process**: When changes need to be split, the command will:
+  1. Identify logical groupings of files/changes
+  2. Use `git add <specific-files>` to stage files for the first commit
+  3. Create and execute the first commit
+  4. Repeat the process for remaining changes until all are committed
 - Always reviews the commit diff to ensure the message matches the changes
 - **Follow the established commit format**: `[TICKET-ID] type: description` when ticket ID is available from branch name
 - **DO NOT** include Claude Code author information in commit messages

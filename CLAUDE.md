@@ -11,9 +11,7 @@ ClimbX is a Spring Boot-based backend API for climbing gym problem submission an
 **Always use specialized subagents for better performance and accuracy:**
 
 - **code-reviewer**: Use after any code changes to ensure quality and security
-- **test-engineer**: Use for test strategy, automation, and quality assurance
 - **backend-architect**: Use for API design, database schemas, and system architecture decisions
-- **security-engineer**: Use for authentication, authorization, and security-related features
 - **database-optimization**: Use for query performance, indexing, and database issues
 - **api-documenter**: Use for OpenAPI specs, documentation, and client libraries
 - **general-purpose**: Use for complex searches, multi-step analysis, or when unsure which agent to use
@@ -61,7 +59,7 @@ cd docker/dev/mysql && docker-compose up -d  # Start DB first
 - Record-based with validation annotations
 - Static factory methods in response DTOs
 
-## Testing (Use test-engineer subagent)
+## Testing 
 
 ### BDD Style (Mandatory)
 - **Use `then()` instead of `verify()`** for mock verification
