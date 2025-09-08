@@ -74,6 +74,9 @@ public class ProblemController implements ProblemApiDocumentation {
     @PostMapping
     @SuccessStatus(value = HttpStatus.CREATED)
     public ProblemCreateResponseDto registerProblem(
+        @AuthenticationPrincipal
+        Long userId,
+
         @RequestPart("request")
         @Valid
         ProblemCreateRequestDto request,
