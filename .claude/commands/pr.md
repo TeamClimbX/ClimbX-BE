@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git branch:*), Bash(git log:*), Bash(git diff:*), Read(.github/pull_request_template.md)
+allowed-tools: Bash(git branch:*), Bash(git log:*), Bash(git diff:*), Bash(git fetch:*), Read(.github/pull_request_template.md)
 argument-hint: 
 description: Create PR title and body using upstream/develop diff analysis
 ---
@@ -16,11 +16,12 @@ Creates a Pull Request title and body by analyzing changes between upstream/deve
 
 ## What it does
 
-1. **Gets current branch**: Extracts current branch name and ticket ID (e.g., `docs/SWM-313` → `SWM-313`)
-2. **Analyzes branch changes**: Uses `git diff upstream/develop..HEAD` to see all changes in current branch
-3. **Reviews commit history**: Gets commit messages from `git log upstream/develop..HEAD` for context
-4. **Reads PR template**: Uses `.github/pull_request_template.md` as the base structure
-5. **Generates PR content**: Creates Korean title and body based on actual code changes
+1. **Fetches latest upstream**: Runs `git fetch upstream/develop` to ensure we have the latest upstream changes
+2. **Gets current branch**: Extracts current branch name and ticket ID (e.g., `docs/SWM-313` → `SWM-313`)
+3. **Analyzes branch changes**: Uses `git diff upstream/develop..HEAD` to see all changes in current branch
+4. **Reviews commit history**: Gets commit messages from `git log upstream/develop..HEAD` for context
+5. **Reads PR template**: Uses `.github/pull_request_template.md` as the base structure
+6. **Generates PR content**: Creates Korean title and body based on actual code changes
 
 ## Output format
 
@@ -34,6 +35,7 @@ Creates a Pull Request title and body by analyzing changes between upstream/deve
 - Requires git repository with upstream/develop branch
 - Uses `.github/pull_request_template.md` for structure
 - Needs readable commit history and file changes
+- Automatically fetches latest upstream/develop before analysis
 
 ## Example
 
@@ -61,6 +63,7 @@ Closes: SWM-313
 
 ## Analysis Method
 
+- **Upstream Sync**: First runs `git fetch upstream/develop` to ensure latest changes
 - **File Changes**: Analyzes `git diff upstream/develop..HEAD --name-status` for modified files
 - **Code Changes**: Uses `git diff upstream/develop..HEAD` for detailed code analysis  
 - **Commit Context**: Reviews `git log upstream/develop..HEAD --oneline` for implementation context
