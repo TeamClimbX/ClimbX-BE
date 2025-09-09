@@ -15,9 +15,6 @@ import org.springframework.scheduling.annotation.Scheduled;
  * <p>
  * - snapshotDailyRanking: 매일 00:05에 모든 사용자의 rating, longestStreak, solvedCount를 히스토리에 저장
  * <p>
- * TODO: 인테그레이션 테스트 추가 필요 - 실제 DB와 함께 스케줄링 동작 및 데이터 정합성 검증
- * TODO: 개발 환경용 테스트 API 추가 필요 - 스케줄러 수동 실행 엔드포인트
- * TODO: 개발 환경에서는 배치 실행 주기를 짧게 설정 (예: 2분) 하여 로컬 테스트 편의성 향상
  * TODO: 대용량 데이터 처리 시 배치 처리 성능 최적화 및 메모리 효율성 개선 필요
  */
 @Slf4j
@@ -33,11 +30,14 @@ public class DailyRankingSnapshotScheduler {
     public void snapshotDailyRanking() {
         LocalDate today = LocalDate.now();
         List<UserStatEntity> userStats = userStatRepository.findAll();
+        log.debug("Starting daily ranking snapshot for date: {} - Total users: {}", today,
+            userStats.size());
         int successCount = 0;
         int failureCount = 0;
 
         for (UserStatEntity userStat : userStats) {
             try {
+                log.debug("Processing ranking snapshot for userId: {}", userStat.userId());
                 rankingSnapshotProcessor.createUserRankingSnapshotInNewTransaction(userStat);
                 successCount++;
             } catch (Exception e) {

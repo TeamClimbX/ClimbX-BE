@@ -1,6 +1,7 @@
 package com.climbx.climbx.common.scheduler;
 
 import com.climbx.climbx.common.entity.OutboxEventEntity;
+import com.climbx.climbx.common.repository.OutboxEventRepository;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
 import java.util.List;
 import java.util.UUID;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OutboxEventProcessor {
 
     private final SubmissionRepository submissionRepository;
+    private final OutboxEventRepository outboxEventRepository;
     private final UserRatingProcessor userRatingProcessor;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -27,6 +29,8 @@ public class OutboxEventProcessor {
                     event.eventType(), event.aggregateId());
             }
             event.markProcessed();
+            // Detached 엔티티 변경 사항을 새 트랜잭션에 반영
+            outboxEventRepository.save(event);
             log.debug("Successfully processed {} event for aggregateId: {}",
                 event.eventType(), event.aggregateId());
         } catch (Exception e) {

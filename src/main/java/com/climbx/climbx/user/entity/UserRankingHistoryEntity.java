@@ -13,10 +13,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -37,7 +35,6 @@ public class UserRankingHistoryEntity extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "history_id", updatable = false, nullable = false)
-    @NotNull
     private Long historyId; // 히스토리 ID (Primary Key)
 
     @Column(name = "criteria", columnDefinition = "varchar(32)", nullable = false)
@@ -46,8 +43,6 @@ public class UserRankingHistoryEntity extends BaseTimeEntity {
     private CriteriaType criteria; // 히스토리 종류
 
     @Column(name = "user_id", insertable = false, updatable = false, nullable = false)
-    @NotNull
-    @Min(1L)
     private Long userId; // 사용자 ID (Foreign Key)
 
     @ManyToOne(fetch = FetchType.LAZY)

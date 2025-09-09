@@ -1,8 +1,10 @@
 package com.climbx.climbx.common.scheduler;
 
 import com.climbx.climbx.common.enums.CriteriaType;
+import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserRankingHistoryEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
+import com.climbx.climbx.user.repository.UserAccountRepository;
 import com.climbx.climbx.user.repository.UserRankingHistoryRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -17,35 +19,41 @@ import org.springframework.transaction.annotation.Transactional;
 public class RankingSnapshotProcessor {
 
     private final UserRankingHistoryRepository userRankingHistoryRepository;
+    private final UserAccountRepository userAccountRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createUserRankingSnapshotInNewTransaction(UserStatEntity userStat) {
         try {
+            Long userId = userStat.userId();
+            log.debug("Start creating ranking snapshot for userId: {}", userId);
+            UserAccountEntity userAccountRef = userAccountRepository.getReferenceById(userId);
+            // FK 세팅용 proxy 객체 
+
             List<UserRankingHistoryEntity> rankingHistories = List.of(
                 UserRankingHistoryEntity.builder()
                     .criteria(CriteriaType.RATING)
-                    .userAccountEntity(userStat.userAccountEntity())
+                    .userAccountEntity(userAccountRef)
                     .value(userStat.rating())
                     .build(),
                 UserRankingHistoryEntity.builder()
                     .criteria(CriteriaType.LONGEST_STREAK)
-                    .userAccountEntity(userStat.userAccountEntity())
+                    .userAccountEntity(userAccountRef)
                     .value(userStat.longestStreak())
                     .build(),
                 UserRankingHistoryEntity.builder()
                     .criteria(CriteriaType.SOLVED_COUNT)
-                    .userAccountEntity(userStat.userAccountEntity())
+                    .userAccountEntity(userAccountRef)
                     .value(userStat.solvedCount())
                     .build()
             );
 
             userRankingHistoryRepository.saveAll(rankingHistories);
 
-            log.debug("Successfully created ranking snapshot for userId: {}",
-                userStat.userAccountEntity().userId());
+            log.debug("Successfully created ranking snapshot for userId: {}", userId);
         } catch (Exception e) {
+            Long safeUserId = userStat.userId();
             log.error("Failed to create ranking snapshot for userId: {}, error: {}",
-                userStat.userAccountEntity().userId(), e.getMessage(), e);
+                safeUserId, e.getMessage(), e);
             throw e;
         }
     }
