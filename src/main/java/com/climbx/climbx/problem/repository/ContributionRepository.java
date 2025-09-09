@@ -18,6 +18,7 @@ public interface ContributionRepository extends JpaRepository<ContributionEntity
     );
 
     // 조회용: 기본 투표(anonymous) 제외
+    @EntityGraph(attributePaths = {"contributionTags", "userAccountEntity", "userAccountEntity.userStatEntity"})
     List<ContributionEntity> findAllByProblemEntity_ProblemIdAndUserAccountEntityIsNotNullOrderByCreatedAtDesc(
         UUID problemId,
         Pageable pageable

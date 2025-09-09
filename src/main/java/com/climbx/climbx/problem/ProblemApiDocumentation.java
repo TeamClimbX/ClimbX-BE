@@ -259,6 +259,9 @@ public interface ProblemApiDocumentation {
         )
     })
     ProblemCreateResponseDto registerProblem(
+        @Parameter(hidden = true)
+        Long userId,
+
         @Parameter(
             description = "문제 생성 요청 데이터",
             required = true
@@ -372,10 +375,7 @@ public interface ProblemApiDocumentation {
         )
     })
     ProblemInfoResponseDto voteProblem(
-        @Parameter(
-            description = "투표하는 사용자 ID",
-            required = true
-        )
+        @Parameter(hidden = true)
         Long userId,
 
         @Parameter(

@@ -4,6 +4,8 @@ import com.climbx.climbx.problem.entity.ContributionEntity;
 import com.climbx.climbx.problem.entity.ContributionTagEntity;
 import com.climbx.climbx.problem.enums.ProblemTagType;
 import com.climbx.climbx.problem.enums.ProblemTierType;
+import com.climbx.climbx.user.entity.UserAccountEntity;
+import com.climbx.climbx.user.enums.UserTierType;
 import java.util.List;
 import lombok.Builder;
 
@@ -12,7 +14,11 @@ public record ContributionResponseDto(
 
     String nickname,
 
-    ProblemTierType tier,
+    String profileImageCdnUrl,
+
+    UserTierType userTier,
+
+    ProblemTierType problemTier,
 
     List<ProblemTagType> tags,
 
@@ -20,9 +26,12 @@ public record ContributionResponseDto(
 ) {
 
     public static ContributionResponseDto from(ContributionEntity c) {
+        UserAccountEntity user = c.userAccountEntity();
         return ContributionResponseDto.builder()
-            .nickname(c.userAccountEntity().nickname())
-            .tier(c.tier())
+            .nickname(user.nickname())
+            .profileImageCdnUrl(user.profileImageCdnUrl())
+            .userTier(UserTierType.fromValue(user.userStatEntity().rating()))
+            .problemTier(c.tier())
             .tags(c.contributionTags().stream()
                 .map(ContributionTagEntity::tag)
                 .toList())

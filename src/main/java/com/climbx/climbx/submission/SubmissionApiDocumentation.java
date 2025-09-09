@@ -228,6 +228,9 @@ public interface SubmissionApiDocumentation {
         )
     })
     SubmissionResponseDto createSubmission(
+        @Parameter(hidden = true)
+        Long userId,
+        
         @Parameter(
             name = "request",
             description = "제출물 생성 요청 데이터",
@@ -244,7 +247,6 @@ public interface SubmissionApiDocumentation {
                     """
             )
         )
-        Long userId,
         @Valid SubmissionCreateRequestDto request
     );
 
@@ -404,6 +406,7 @@ public interface SubmissionApiDocumentation {
         )
     })
     SubmissionCancelResponseDto cancelSubmission(
+        @Parameter(hidden = true)
         Long userId,
 
         @Parameter(
@@ -611,6 +614,7 @@ public interface SubmissionApiDocumentation {
         )
     })
     SubmissionAppealResponseDto appealSubmission(
+        @Parameter(hidden = true)
         Long userId,
 
         @Parameter(
