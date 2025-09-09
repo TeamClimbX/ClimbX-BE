@@ -37,7 +37,7 @@ class DailyRankingSnapshotSchedulerIntegrationTest extends AbstractSchedulerInte
             insertUserAccount(1L, "user1");
             insertUserAccount(2L, "user2");
             insertUserAccount(3L, "user3");
-            
+
             List<UserStatEntity> userStats = SchedulerTestFixture.createMultipleUserStats();
             insertUserStats(userStats);
 

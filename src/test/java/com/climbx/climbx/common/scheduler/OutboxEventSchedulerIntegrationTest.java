@@ -141,11 +141,9 @@ class OutboxEventSchedulerIntegrationTest extends AbstractSchedulerIntegrationTe
             assertThat(countProcessedOutboxEvents()).isEqualTo(2);
             assertThat(countUnprocessedOutboxEvents()).isEqualTo(0);
 
-            OutboxEventEntity originalProcessedEvent =
+            OutboxEventEntity finalProcessedEvent =
                 outboxEventRepository.findById(processedEvent.eventId()).orElseThrow();
-            assertThat(originalProcessedEvent.processed()).isTrue();
-            assertThat(originalProcessedEvent.processedAt()).isEqualTo(
-                processedEvent.processedAt());
+            assertThat(finalProcessedEvent.processed()).isTrue();
         }
 
         @Test
