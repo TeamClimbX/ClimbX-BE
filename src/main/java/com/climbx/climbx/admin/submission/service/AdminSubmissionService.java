@@ -9,7 +9,6 @@ import com.climbx.climbx.problem.service.ProblemService;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.submission.exception.PendingSubmissionNotFoundException;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
-import com.climbx.climbx.user.dto.RatingResponseDto;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
@@ -85,18 +84,9 @@ public class AdminSubmissionService {
                 }
             );
 
-            // 로깅을 위해 현재 rating 조회 (optional)
-            try {
-                RatingResponseDto rating = userDataAggregationService.calculateUserRatingFromCurrentStats(
-                    userStat);
-                if (rating != null) {
-                    log.info("User {} (ID: {}) new rating: {}",
-                        userStat.userAccountEntity().nickname(),
-                        userId, rating.totalRating());
-                }
-            } catch (Exception e) {
-                log.debug("Failed to calculate rating for logging: {}", e.getMessage());
-            }
+            log.info("User {} (ID: {}) new rating: {}",
+                userStat.userAccountEntity().nickname(),
+                userId, userStat.rating());
 
         }
 

@@ -3,6 +3,7 @@ package com.climbx.climbx.user.service;
 import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.problem.dto.ProblemInfoResponseDto;
 import com.climbx.climbx.problem.dto.TagRatingPairDto;
+import com.climbx.climbx.problem.enums.ProblemTierType;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
 import com.climbx.climbx.user.dto.RatingResponseDto;
 import com.climbx.climbx.user.dto.TagRatingResponseDto;
@@ -48,21 +49,12 @@ public class UserDataAggregationService {
             submissionRepository.getUserAcceptedSubmissionTagSummary(userId, null)
         );
 
-        Integer totalRating = userStat.rating();
-        Integer topProblemRating = userStat.topProblemRating();
-        Integer submissionRating = UserRatingUtil.calculateSubmissionScore(
-            userStat.submissionCount());
-        Integer solvedRating = UserRatingUtil.calculateSolvedScore(userStat.solvedCount());
-        Integer contributionRating = UserRatingUtil.calculateContributionScore(
-            userStat.contributionCount());
-
-        RatingResponseDto rating = RatingResponseDto.builder()
-            .totalRating(totalRating)
-            .topProblemRating(topProblemRating)
-            .submissionRating(submissionRating)
-            .solvedRating(solvedRating)
-            .contributionRating(contributionRating)
-            .build();
+        RatingResponseDto rating = UserRatingUtil.calculateUserRating(
+            userStat.topProblemRating(),
+            userStat.submissionCount(),
+            userStat.solvedCount(),
+            userStat.contributionCount()
+        );
 
         return UserProfileResponseDto.from(
             userAccount,
@@ -156,14 +148,12 @@ public class UserDataAggregationService {
     }
 
     private RatingResponseDto buildRatingResponse(UserStatEntity userStat) {
-        return RatingResponseDto.builder()
-            .totalRating(userStat.rating())
-            .topProblemRating(userStat.topProblemRating())
-            .submissionRating(UserRatingUtil.calculateSubmissionScore(userStat.submissionCount()))
-            .solvedRating(UserRatingUtil.calculateSolvedScore(userStat.solvedCount()))
-            .contributionRating(
-                UserRatingUtil.calculateContributionScore(userStat.contributionCount()))
-            .build();
+        return UserRatingUtil.calculateUserRating(
+            userStat.topProblemRating(),
+            userStat.submissionCount(),
+            userStat.solvedCount(),
+            userStat.contributionCount()
+        );
     }
 
     /**
@@ -187,11 +177,10 @@ public class UserDataAggregationService {
 
         List<Integer> topProblemRatings = getUserTopProblemRatings(userId);
 
-        // topProblemRating을 실제 해결한 문제들 중 최대값으로 갱신
+        // topProblemRating을 상위 50개 문제의 티어 점수 합계로 갱신
         int actualTopProblemRating = topProblemRatings.stream()
-            .mapToInt(Integer::intValue)
-            .max()
-            .orElse(0);
+            .mapToInt(rating -> ProblemTierType.fromValue(rating).value() * 2)
+            .sum();
 
         userStat.setTopProblemRating(actualTopProblemRating);
 
