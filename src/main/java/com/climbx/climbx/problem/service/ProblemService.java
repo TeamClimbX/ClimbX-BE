@@ -230,21 +230,24 @@ public class ProblemService {
             log.info("User {} has already accepted problem {}, marking vote as accepted",
                 userId, problemId);
 
+            // Capture the original tier before applying the vote
+            ProblemTierType originalTier = problem.tier();
+            
             applyVoteToProblem(problem, contribution, votedTags);
-        }
-
-        // Outbox: 사용자 난이도 기여 및 (필요 시) 문제 티어 변경 이벤트 기록
-        try {
-            if (!problem.tier().equals(newProblemTier)) {
-                outboxService.recordEvent(
-                    "problem",
-                    problem.problemId().toString(),
-                    OutboxEventType.PROBLEM_TIER_CHANGED
-                );
+            
+            // Outbox: 사용자 난이도 기여 및 (필요 시) 문제 티어 변경 이벤트 기록
+            try {
+                if (!originalTier.equals(problem.tier())) {
+                    outboxService.recordEvent(
+                        "problem",
+                        problem.problemId().toString(),
+                        OutboxEventType.PROBLEM_TIER_CHANGED
+                    );
+                }
+            } catch (Exception e) {
+                log.error("Failed to record outbox event for problem tier change - problemId: {}, error: {}", 
+                    problem.problemId(), e.getMessage(), e);
             }
-        } catch (Exception e) {
-            log.error("Failed to record outbox event for problem tier change - problemId: {}, error: {}", 
-                problem.problemId(), e.getMessage(), e);
         }
 
         UserStatEntity userStat = user.userStatEntity();

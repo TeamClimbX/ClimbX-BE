@@ -34,7 +34,6 @@ public class UserDataAggregationService {
 
     private final UserStatRepository userStatRepository;
     private final SubmissionRepository submissionRepository;
-    private final UserRatingUtil userRatingUtil;
 
     public UserProfileResponseDto buildProfile(UserAccountEntity userAccount) {
         Long userId = userAccount.userId();
@@ -44,7 +43,7 @@ public class UserDataAggregationService {
         Integer ratingRank = userStatRepository.findRankByRatingAndUpdatedAtAndUserId(
             userStat.rating(), userStat.updatedAt(), userId);
 
-        List<TagRatingResponseDto> categoryRatings = userRatingUtil.calculateCategoryRating(
+        List<TagRatingResponseDto> categoryRatings = UserRatingUtil.calculateCategoryRating(
             submissionRepository.getUserAcceptedSubmissionTagSummary(userId, StatusType.ACCEPTED),
             submissionRepository.getUserAcceptedSubmissionTagSummary(userId, null)
         );
@@ -115,7 +114,7 @@ public class UserDataAggregationService {
                 UserTierType tier = UserTierType.fromValue(userStat.rating());
                 Integer ratingRank = rankingMap.get(userId);
 
-                List<TagRatingResponseDto> categoryRatings = userRatingUtil.calculateCategoryRating(
+                List<TagRatingResponseDto> categoryRatings = UserRatingUtil.calculateCategoryRating(
                     acceptedTagsMap.getOrDefault(userId, List.of()),
                     allTagsMap.getOrDefault(userId, List.of())
                 );
@@ -168,23 +167,40 @@ public class UserDataAggregationService {
     }
 
     /**
-     * 특정 유저의 레이팅을 재계산하고 UserStat을 업데이트합니다. AdminSubmissionService와 배치 처리에서 공통으로 사용됩니다.
+     * 현재 UserStat 엔티티의 값들로 rating을 계산합니다.
+     * AdminSubmissionService에서 단순 계산이 필요할 때 사용됩니다.
+     */
+    public RatingResponseDto calculateUserRatingFromCurrentStats(UserStatEntity userStat) {
+        return UserRatingUtil.calculateUserRating(
+            userStat.topProblemRating(),
+            userStat.submissionCount(),
+            userStat.solvedCount(),
+            userStat.contributionCount()
+        );
+    }
+
+    /**
+     * topProblemRating을 갱신한 후 전체 레이팅을 재계산하고 UserStat을 업데이트합니다.
+     * 배치 처리나 전체 재계산이 필요할 때 사용됩니다.
      */
     @Transactional
     public void recalculateAndUpdateUserRating(Long userId) {
         UserStatEntity userStat = findUserStatByUserId(userId);
 
         List<Integer> topProblemRatings = getUserTopProblemRatings(userId);
+        
+        // topProblemRating을 실제 해결한 문제들 중 최대값으로 갱신
+        int actualTopProblemRating = topProblemRatings.stream()
+            .mapToInt(Integer::intValue)
+            .max()
+            .orElse(0);
+        
+        userStat.setTopProblemRating(actualTopProblemRating);
 
-        RatingResponseDto updatedRating = userRatingUtil.calculateUserRating(
-            topProblemRatings,
-            userStat.submissionCount(),
-            userStat.solvedCount(),
-            userStat.contributionCount()
-        );
+        // 갱신된 값들로 rating 재계산 (단순 계산 메서드 호출)
+        RatingResponseDto updatedRating = calculateUserRatingFromCurrentStats(userStat);
 
         userStat.setRating(updatedRating.totalRating());
-        userStat.setTopProblemRating(updatedRating.topProblemRating());
 
         log.debug("Updated user rating for userId: {}, new rating: {}",
             userId, updatedRating.totalRating());

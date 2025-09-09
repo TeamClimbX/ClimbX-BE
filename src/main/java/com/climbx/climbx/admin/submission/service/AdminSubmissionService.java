@@ -3,6 +3,7 @@ package com.climbx.climbx.admin.submission.service;
 import com.climbx.climbx.admin.submission.dto.SubmissionReviewRequestDto;
 import com.climbx.climbx.admin.submission.dto.SubmissionReviewResponseDto;
 import com.climbx.climbx.admin.submission.exception.StatusModifyToPendingException;
+import com.climbx.climbx.common.enums.OutboxEventType;
 import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.problem.repository.ContributionRepository;
 import com.climbx.climbx.problem.service.ProblemService;
@@ -10,11 +11,11 @@ import com.climbx.climbx.common.service.OutboxService;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.submission.exception.PendingSubmissionNotFoundException;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
+import com.climbx.climbx.user.dto.RatingResponseDto;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
 import com.climbx.climbx.user.service.UserDataAggregationService;
-import com.climbx.climbx.user.util.UserRatingUtil;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -68,16 +69,10 @@ public class AdminSubmissionService {
 
         if (submission.status() == StatusType.ACCEPTED) {
             userStat.incrementSolvedProblemsCount();
-            RatingResponseDto rating = UserRatingUtil.calculateUserRating(
-                userStat.topProblemRating(),
-                userStat.submissionCount(),
-                userStat.solvedCount(),
-                userStat.contributionCount()
-            );
-
-            // 통합된 레이팅 재계산 메서드 사용
+            
+            // topProblemRating 갱신 후 전체 레이팅 재계산
             userDataAggregationService.recalculateAndUpdateUserRating(userId);
-
+            
             log.info("User {} (ID: {}) rating updated after submission approval",
                 userStat.userAccountEntity().nickname(), userId);
             contributionRepository.findByUserIdAndProblemId(
@@ -93,17 +88,23 @@ public class AdminSubmissionService {
                 }
             );
 
-            log.info("User {} (ID: {}) new rating: {}",
-                userStat.userAccountEntity().nickname(),
-                userId, rating.totalRating());
+            // 로깅을 위해 현재 rating 조회 (optional)
+            try {
+                RatingResponseDto rating = userDataAggregationService.calculateUserRatingFromCurrentStats(userStat);
+                if (rating != null) {
+                    log.info("User {} (ID: {}) new rating: {}",
+                        userStat.userAccountEntity().nickname(),
+                        userId, rating.totalRating());
+                }
+            } catch (Exception e) {
+                log.debug("Failed to calculate rating for logging: {}", e.getMessage());
+            }
 
             try {
                 outboxService.recordEvent(
                     "user",
                     userId.toString(),
-                    OutboxEventType.USER_SOLVED_PROBLEM,
-                    submission.videoId().toString(),
-                    "{\"userId\":" + userId + ",\"videoId\":\"" + submission.videoId() + "\"}"
+                    OutboxEventType.USER_SOLVED_PROBLEM
                 );
             } catch (Exception ignored) {
             }

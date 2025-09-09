@@ -57,7 +57,7 @@ public class UserRatingUtil {
             .build();
     }
 
-    public List<TagRatingResponseDto> calculateCategoryRating(
+    public static List<TagRatingResponseDto> calculateCategoryRating(
         List<TagRatingPairDto> solvedTags,
         List<TagRatingPairDto> allTags
     ) {
