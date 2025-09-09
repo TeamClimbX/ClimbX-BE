@@ -1,13 +1,13 @@
 package com.climbx.climbx.common.scheduler;
 
+import com.climbx.climbx.common.service.S3Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import com.climbx.climbx.common.service.S3Service;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -24,6 +24,14 @@ public abstract class AbstractSchedulerIntegrationTest {
         .withDatabaseName("climbx_test")
         .withUsername("test")
         .withPassword("test");
+    @Autowired
+    protected JdbcClient jdbcClient;
+    @MockitoBean
+    protected S3Client s3Client;
+    @MockitoBean
+    protected S3Presigner s3Presigner;
+    @MockitoBean
+    protected S3Service s3Service;
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
@@ -33,18 +41,6 @@ public abstract class AbstractSchedulerIntegrationTest {
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
     }
 
-    @Autowired
-    protected JdbcClient jdbcClient;
-
-    @MockitoBean
-    protected S3Client s3Client;
-
-    @MockitoBean
-    protected S3Presigner s3Presigner;
-
-    @MockitoBean
-    protected S3Service s3Service;
-
     protected int countRankingHistories(Long userId) {
         return jdbcClient.sql("SELECT COUNT(*) FROM user_ranking_histories WHERE user_id = ?")
             .param(userId)
@@ -53,7 +49,8 @@ public abstract class AbstractSchedulerIntegrationTest {
     }
 
     protected int countRankingHistoriesByCriteria(Long userId, String criteria) {
-        return jdbcClient.sql("SELECT COUNT(*) FROM user_ranking_histories WHERE user_id = ? AND criteria = ?")
+        return jdbcClient.sql(
+                "SELECT COUNT(*) FROM user_ranking_histories WHERE user_id = ? AND criteria = ?")
             .param(userId)
             .param(criteria)
             .query(Integer.class)

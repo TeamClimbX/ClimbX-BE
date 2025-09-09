@@ -43,7 +43,8 @@ class OutboxEventSchedulerIntegrationTest extends AbstractSchedulerIntegrationTe
             assertThat(allEvents).hasSize(3);
 
             for (OutboxEventEntity event : allEvents) {
-                OutboxEventEntity updatedEvent = outboxEventRepository.findById(event.eventId()).orElseThrow();
+                OutboxEventEntity updatedEvent = outboxEventRepository.findById(event.eventId())
+                    .orElseThrow();
                 assertThat(updatedEvent.processed()).isTrue();
                 assertThat(updatedEvent.processedAt()).isNotNull();
             }
@@ -65,7 +66,8 @@ class OutboxEventSchedulerIntegrationTest extends AbstractSchedulerIntegrationTe
         void shouldProcessProblemTierChangedEvents() {
             // given
             OutboxEventEntity tierChangedEvent =
-                SchedulerTestFixture.createUnprocessedOutboxEvent(OutboxEventType.PROBLEM_TIER_CHANGED);
+                SchedulerTestFixture.createUnprocessedOutboxEvent(
+                    OutboxEventType.PROBLEM_TIER_CHANGED);
             outboxEventRepository.save(tierChangedEvent);
 
             // when
@@ -106,9 +108,12 @@ class OutboxEventSchedulerIntegrationTest extends AbstractSchedulerIntegrationTe
             List<OutboxEventEntity> allEvents = outboxEventRepository.findAll();
             assertThat(allEvents).hasSize(3);
 
-            OutboxEventEntity firstEvent = outboxEventRepository.findById(savedEvents.get(0).eventId()).orElseThrow();
-            OutboxEventEntity thirdEvent = outboxEventRepository.findById(savedEvents.get(2).eventId()).orElseThrow();
-            OutboxEventEntity failedEvent = outboxEventRepository.findById(failingEvent.eventId()).orElseThrow();
+            OutboxEventEntity firstEvent = outboxEventRepository.findById(
+                savedEvents.get(0).eventId()).orElseThrow();
+            OutboxEventEntity thirdEvent = outboxEventRepository.findById(
+                savedEvents.get(2).eventId()).orElseThrow();
+            OutboxEventEntity failedEvent = outboxEventRepository.findById(failingEvent.eventId())
+                .orElseThrow();
 
             assertThat(firstEvent.processed()).isTrue();
             assertThat(thirdEvent.processed()).isTrue();
@@ -121,9 +126,11 @@ class OutboxEventSchedulerIntegrationTest extends AbstractSchedulerIntegrationTe
         void shouldSkipAlreadyProcessedEvents() {
             // given
             OutboxEventEntity processedEvent =
-                SchedulerTestFixture.createProcessedOutboxEvent(OutboxEventType.PROBLEM_TIER_CHANGED);
+                SchedulerTestFixture.createProcessedOutboxEvent(
+                    OutboxEventType.PROBLEM_TIER_CHANGED);
             OutboxEventEntity unprocessedEvent =
-                SchedulerTestFixture.createUnprocessedOutboxEvent(OutboxEventType.PROBLEM_TIER_CHANGED);
+                SchedulerTestFixture.createUnprocessedOutboxEvent(
+                    OutboxEventType.PROBLEM_TIER_CHANGED);
 
             outboxEventRepository.saveAll(List.of(processedEvent, unprocessedEvent));
 
@@ -137,7 +144,8 @@ class OutboxEventSchedulerIntegrationTest extends AbstractSchedulerIntegrationTe
             OutboxEventEntity originalProcessedEvent =
                 outboxEventRepository.findById(processedEvent.eventId()).orElseThrow();
             assertThat(originalProcessedEvent.processed()).isTrue();
-            assertThat(originalProcessedEvent.processedAt()).isEqualTo(processedEvent.processedAt());
+            assertThat(originalProcessedEvent.processedAt()).isEqualTo(
+                processedEvent.processedAt());
         }
 
         @Test
@@ -145,9 +153,11 @@ class OutboxEventSchedulerIntegrationTest extends AbstractSchedulerIntegrationTe
         void shouldProcessEventsByTypeCorrectly() {
             // given
             OutboxEventEntity event1 =
-                SchedulerTestFixture.createUnprocessedOutboxEvent(OutboxEventType.PROBLEM_TIER_CHANGED);
+                SchedulerTestFixture.createUnprocessedOutboxEvent(
+                    OutboxEventType.PROBLEM_TIER_CHANGED);
             OutboxEventEntity event2 =
-                SchedulerTestFixture.createUnprocessedOutboxEvent(OutboxEventType.PROBLEM_TIER_CHANGED);
+                SchedulerTestFixture.createUnprocessedOutboxEvent(
+                    OutboxEventType.PROBLEM_TIER_CHANGED);
 
             outboxEventRepository.saveAll(List.of(event1, event2));
 
@@ -159,9 +169,11 @@ class OutboxEventSchedulerIntegrationTest extends AbstractSchedulerIntegrationTe
             assertThat(allEvents).hasSize(2);
 
             for (OutboxEventEntity event : allEvents) {
-                OutboxEventEntity updatedEvent = outboxEventRepository.findById(event.eventId()).orElseThrow();
+                OutboxEventEntity updatedEvent = outboxEventRepository.findById(event.eventId())
+                    .orElseThrow();
                 assertThat(updatedEvent.processed()).isTrue();
-                assertThat(updatedEvent.eventType()).isEqualTo(OutboxEventType.PROBLEM_TIER_CHANGED);
+                assertThat(updatedEvent.eventType()).isEqualTo(
+                    OutboxEventType.PROBLEM_TIER_CHANGED);
             }
         }
     }
