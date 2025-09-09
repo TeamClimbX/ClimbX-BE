@@ -1,9 +1,6 @@
 spring:
   profiles:
     active: test
-    group:
-      test:
-        - db-test
 
   jpa:
     open-in-view: false
@@ -23,9 +20,6 @@ spring:
 
 server:
   port: 8081
-
-auth:
-  fixed-jwt: ${FIXED_JWT:default-jwt-token}
 
 logging:
   level:

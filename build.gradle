@@ -84,4 +84,7 @@ tasks.named('check') {
 
 tasks.named('test') {
     useJUnitPlatform()
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+    forkEvery = 50
+    outputs.upToDateWhen { false }  // 테스트는 항상 실행
 }

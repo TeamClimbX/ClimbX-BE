@@ -1,14 +1,18 @@
 package com.climbx.climbx.video.service;
 
+import com.climbx.climbx.common.enums.ErrorCode;
 import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.common.service.S3Service;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserAccountRepository;
+import com.climbx.climbx.video.dto.VideoDeleteResponseDto;
 import com.climbx.climbx.video.dto.VideoListResponseDto;
 import com.climbx.climbx.video.dto.VideoUploadRequestDto;
 import com.climbx.climbx.video.dto.VideoUploadResponseDto;
 import com.climbx.climbx.video.entity.VideoEntity;
+import com.climbx.climbx.video.exception.VideoNotFoundException;
+import com.climbx.climbx.video.exception.VideoOnlyOwnerCanModifyException;
 import com.climbx.climbx.video.repository.VideoRepository;
 import java.util.List;
 import java.util.UUID;
@@ -66,5 +70,21 @@ public class VideoService {
             .stream()
             .map(VideoListResponseDto::from)
             .toList();
+    }
+
+    @Transactional
+    public VideoDeleteResponseDto deleteVideo(Long userId, UUID videoId) {
+        VideoEntity videoEntity = videoRepository.findById(videoId)
+            .orElseThrow(() -> new VideoNotFoundException(videoId));
+
+        // 비디오 소유자 확인
+        if (!videoEntity.userId().equals(userId)) {
+            throw new VideoOnlyOwnerCanModifyException(ErrorCode.VIDEO_ONLY_OWNER_CAN_MODIFY);
+        }
+
+        // Soft delete 수행
+        videoEntity.softDelete();
+
+        return VideoDeleteResponseDto.from(videoId);
     }
 }

@@ -51,6 +51,11 @@ public enum ErrorCode {
         "기본 닉네임 생성 재시도 횟수를 초과했습니다."),
 
     /**
+     * Video errors
+     */
+    VIDEO_ONLY_OWNER_CAN_MODIFY(HttpStatus.FORBIDDEN, "비디오 소유자만 수정할 수 있습니다."),
+
+    /**
      * Gym errors
      */
     GYM_NOT_FOUND(HttpStatus.NOT_FOUND, "클라이밍장을 찾을 수 없습니다."),
