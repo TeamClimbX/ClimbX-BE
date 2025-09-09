@@ -7,7 +7,6 @@ import com.climbx.climbx.fixture.SchedulerTestFixture;
 import com.climbx.climbx.user.entity.UserRankingHistoryEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.repository.UserRankingHistoryRepository;
-import com.climbx.climbx.user.repository.UserStatRepository;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -24,9 +23,6 @@ class DailyRankingSnapshotSchedulerIntegrationTest extends AbstractSchedulerInte
     @Autowired
     private UserRankingHistoryRepository userRankingHistoryRepository;
 
-    @Autowired
-    private UserStatRepository userStatRepository;
-
     @MockitoSpyBean
     private RankingSnapshotProcessor rankingSnapshotProcessor;
 
@@ -38,10 +34,11 @@ class DailyRankingSnapshotSchedulerIntegrationTest extends AbstractSchedulerInte
         @DisplayName("여러 유저의 통계를 3가지 기준으로 히스토리에 저장한다")
         void shouldCreateRankingSnapshotsForMultipleUsers() {
             // given
-            List<UserStatEntity> userStats = SchedulerTestFixture.createMultipleUserStats();
             insertUserAccount(1L, "user1");
             insertUserAccount(2L, "user2");
             insertUserAccount(3L, "user3");
+            
+            List<UserStatEntity> userStats = SchedulerTestFixture.createMultipleUserStats();
             insertUserStats(userStats);
 
             // when
@@ -80,10 +77,10 @@ class DailyRankingSnapshotSchedulerIntegrationTest extends AbstractSchedulerInte
         @DisplayName("일부 유저 처리 실패 시 다른 유저는 정상 처리된다")
         void shouldContinueProcessingOtherUsersWhenOneUserFails() {
             // given
-            List<UserStatEntity> userStats = SchedulerTestFixture.createMultipleUserStats();
             insertUserAccount(1L, "user1");
             insertUserAccount(2L, "user2");
             insertUserAccount(3L, "user3");
+            List<UserStatEntity> userStats = SchedulerTestFixture.createMultipleUserStats();
             insertUserStats(userStats);
 
             // when
