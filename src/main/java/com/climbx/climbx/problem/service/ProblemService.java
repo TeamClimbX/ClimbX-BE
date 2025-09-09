@@ -2,7 +2,9 @@ package com.climbx.climbx.problem.service;
 
 import com.climbx.climbx.common.enums.ActiveStatusType;
 import com.climbx.climbx.common.enums.ErrorCode;
+import com.climbx.climbx.common.enums.OutboxEventType;
 import com.climbx.climbx.common.exception.InvalidParameterException;
+import com.climbx.climbx.common.service.OutboxService;
 import com.climbx.climbx.common.service.S3Service;
 import com.climbx.climbx.gym.entity.GymAreaEntity;
 import com.climbx.climbx.gym.entity.GymEntity;
@@ -38,8 +40,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
-import com.climbx.climbx.common.enums.OutboxEventType;
-import com.climbx.climbx.common.service.OutboxService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -232,21 +232,16 @@ public class ProblemService {
 
             // Capture the original tier before applying the vote
             ProblemTierType originalTier = problem.tier();
-            
+
             applyVoteToProblem(problem, contribution, votedTags);
-            
+
             // Outbox: 사용자 난이도 기여 및 (필요 시) 문제 티어 변경 이벤트 기록
-            try {
-                if (!originalTier.equals(problem.tier())) {
-                    outboxService.recordEvent(
-                        "problem",
-                        problem.problemId().toString(),
-                        OutboxEventType.PROBLEM_TIER_CHANGED
-                    );
-                }
-            } catch (Exception e) {
-                log.error("Failed to record outbox event for problem tier change - problemId: {}, error: {}", 
-                    problem.problemId(), e.getMessage(), e);
+            if (!originalTier.equals(problem.tier())) {
+                outboxService.recordEvent(
+                    "problem",
+                    problem.problemId().toString(),
+                    OutboxEventType.PROBLEM_TIER_CHANGED
+                );
             }
         }
 

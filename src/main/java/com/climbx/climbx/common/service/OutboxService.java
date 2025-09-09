@@ -6,9 +6,11 @@ import com.climbx.climbx.common.repository.OutboxEventRepository;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OutboxService {
@@ -21,15 +23,20 @@ public class OutboxService {
         String aggregateId,
         OutboxEventType eventType
     ) {
-        OutboxEventEntity event = OutboxEventEntity.builder()
-            .eventId(UUID.randomUUID())
-            .aggregateType(aggregateType)
-            .aggregateId(aggregateId)
-            .eventType(eventType)
-            .occurredAt(LocalDateTime.now())
-            .build();
+        try {
+            OutboxEventEntity event = OutboxEventEntity.builder()
+                .eventId(UUID.randomUUID())
+                .aggregateType(aggregateType)
+                .aggregateId(aggregateId)
+                .eventType(eventType)
+                .occurredAt(LocalDateTime.now())
+                .build();
 
-        outboxEventRepository.save(event);
+            outboxEventRepository.save(event);
+        } catch (Exception e) {
+            log.warn("Failed to record outbox event: type={}, id={}, event={}",
+                aggregateType, aggregateId, eventType, e);
+        }
     }
 }
 
