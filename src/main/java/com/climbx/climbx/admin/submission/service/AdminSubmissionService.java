@@ -3,11 +3,9 @@ package com.climbx.climbx.admin.submission.service;
 import com.climbx.climbx.admin.submission.dto.SubmissionReviewRequestDto;
 import com.climbx.climbx.admin.submission.dto.SubmissionReviewResponseDto;
 import com.climbx.climbx.admin.submission.exception.StatusModifyToPendingException;
-import com.climbx.climbx.common.enums.OutboxEventType;
 import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.problem.repository.ContributionRepository;
 import com.climbx.climbx.problem.service.ProblemService;
-import com.climbx.climbx.common.service.OutboxService;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.submission.exception.PendingSubmissionNotFoundException;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
@@ -31,7 +29,6 @@ public class AdminSubmissionService {
     private final SubmissionRepository submissionRepository;
     private final UserStatRepository userStatRepository;
     private final UserDataAggregationService userDataAggregationService;
-    private final OutboxService outboxService;
     private final ContributionRepository contributionRepository;
     private final ProblemService problemService;
 
@@ -69,10 +66,10 @@ public class AdminSubmissionService {
 
         if (submission.status() == StatusType.ACCEPTED) {
             userStat.incrementSolvedProblemsCount();
-            
+
             // topProblemRating 갱신 후 전체 레이팅 재계산
             userDataAggregationService.recalculateAndUpdateUserRating(userId);
-            
+
             log.info("User {} (ID: {}) rating updated after submission approval",
                 userStat.userAccountEntity().nickname(), userId);
             contributionRepository.findByUserIdAndProblemId(
@@ -90,7 +87,8 @@ public class AdminSubmissionService {
 
             // 로깅을 위해 현재 rating 조회 (optional)
             try {
-                RatingResponseDto rating = userDataAggregationService.calculateUserRatingFromCurrentStats(userStat);
+                RatingResponseDto rating = userDataAggregationService.calculateUserRatingFromCurrentStats(
+                    userStat);
                 if (rating != null) {
                     log.info("User {} (ID: {}) new rating: {}",
                         userStat.userAccountEntity().nickname(),
@@ -100,14 +98,6 @@ public class AdminSubmissionService {
                 log.debug("Failed to calculate rating for logging: {}", e.getMessage());
             }
 
-            try {
-                outboxService.recordEvent(
-                    "user",
-                    userId.toString(),
-                    OutboxEventType.USER_SOLVED_PROBLEM
-                );
-            } catch (Exception ignored) {
-            }
         }
 
         return SubmissionReviewResponseDto.builder()

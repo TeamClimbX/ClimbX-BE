@@ -2,7 +2,6 @@ package com.climbx.climbx.common.scheduler;
 
 import com.climbx.climbx.common.entity.OutboxEventEntity;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
-import com.climbx.climbx.user.service.UserDataAggregationService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +23,7 @@ public class OutboxEventProcessor {
         try {
             switch (event.eventType()) {
                 case PROBLEM_TIER_CHANGED -> processProblemTierEvent(event);
-                default -> log.warn("Unknown event type: {} for aggregateId: {}", 
+                default -> log.warn("Unknown event type: {} for aggregateId: {}",
                     event.eventType(), event.aggregateId());
             }
             event.markProcessed();
@@ -55,11 +54,12 @@ public class OutboxEventProcessor {
                 successCount++;
             } catch (Exception e) {
                 failureCount++;
-                log.error("Failed to update rating for userId: {}, error: {}", userId, e.getMessage(), e);
+                log.error("Failed to update rating for userId: {}, error: {}", userId,
+                    e.getMessage(), e);
             }
         }
 
-        log.info("Updated ratings for problem: {} - Total: {}, Success: {}, Failure: {}", 
+        log.info("Updated ratings for problem: {} - Total: {}, Success: {}, Failure: {}",
             problemId, userIds.size(), successCount, failureCount);
     }
 }

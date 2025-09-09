@@ -41,10 +41,10 @@ public class RankingSnapshotProcessor {
 
             userRankingHistoryRepository.saveAll(rankingHistories);
 
-            log.debug("Successfully created ranking snapshot for userId: {}", 
+            log.debug("Successfully created ranking snapshot for userId: {}",
                 userStat.userAccountEntity().userId());
         } catch (Exception e) {
-            log.error("Failed to create ranking snapshot for userId: {}, error: {}", 
+            log.error("Failed to create ranking snapshot for userId: {}, error: {}",
                 userStat.userAccountEntity().userId(), e.getMessage(), e);
             throw e;
         }

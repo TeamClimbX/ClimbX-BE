@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mockStatic;
 import com.climbx.climbx.common.enums.RoleType;
 import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.problem.dto.TagRatingPairDto;
+import com.climbx.climbx.problem.enums.ProblemTagType;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
 import com.climbx.climbx.user.dto.TagRatingResponseDto;
 import com.climbx.climbx.user.dto.UserProfileResponseDto;
@@ -22,7 +23,6 @@ import com.climbx.climbx.user.enums.UserTierType;
 import com.climbx.climbx.user.exception.UserStatNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
 import com.climbx.climbx.user.util.UserRatingUtil;
-import com.climbx.climbx.problem.enums.ProblemTagType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -120,9 +120,10 @@ class UserDataAggregationServiceTest {
 
             // when
             try (MockedStatic<UserRatingUtil> mockedStatic = mockStatic(UserRatingUtil.class)) {
-                mockedStatic.when(() -> UserRatingUtil.calculateCategoryRating(acceptedTags, allTags))
+                mockedStatic.when(
+                        () -> UserRatingUtil.calculateCategoryRating(acceptedTags, allTags))
                     .thenReturn(categoryRatings);
-                    
+
                 UserProfileResponseDto result = userDataAggregationService.buildProfile(user);
 
                 // then
@@ -220,7 +221,7 @@ class UserDataAggregationServiceTest {
             try (MockedStatic<UserRatingUtil> mockedStatic = mockStatic(UserRatingUtil.class)) {
                 mockedStatic.when(() -> UserRatingUtil.calculateCategoryRating(any(), any()))
                     .thenReturn(categoryRatings);
-                    
+
                 UserProfileResponseDto result = userDataAggregationService.buildProfile(user);
 
                 // then
@@ -291,7 +292,7 @@ class UserDataAggregationServiceTest {
             try (MockedStatic<UserRatingUtil> mockedStatic = mockStatic(UserRatingUtil.class)) {
                 mockedStatic.when(() -> UserRatingUtil.calculateCategoryRating(any(), any()))
                     .thenReturn(categoryRatings);
-                    
+
                 List<UserProfileResponseDto> results = userDataAggregationService.buildProfilesBatch(
                     users);
 

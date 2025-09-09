@@ -20,7 +20,8 @@ public class UserRatingProcessor {
             userDataAggregationService.recalculateAndUpdateUserRating(userId);
             log.debug("Successfully updated rating for userId: {}", userId);
         } catch (Exception e) {
-            log.error("Failed to update rating for userId: {}, error: {}", userId, e.getMessage(), e);
+            log.error("Failed to update rating for userId: {}, error: {}", userId, e.getMessage(),
+                e);
             throw e;
         }
     }

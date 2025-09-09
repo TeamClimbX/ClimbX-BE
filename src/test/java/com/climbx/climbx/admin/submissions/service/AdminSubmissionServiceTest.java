@@ -51,7 +51,7 @@ class AdminSubmissionServiceTest {
 
     @Mock
     private ProblemService problemService;
-    
+
     @Mock
     private UserDataAggregationService userDataAggregationService;
 

@@ -3,10 +3,10 @@ package com.climbx.climbx.fixture;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
-import com.climbx.climbx.common.enums.CriteriaType;
-import com.climbx.climbx.common.enums.RoleType;
-import com.climbx.climbx.common.enums.OutboxEventType;
 import com.climbx.climbx.common.entity.OutboxEventEntity;
+import com.climbx.climbx.common.enums.CriteriaType;
+import com.climbx.climbx.common.enums.OutboxEventType;
+import com.climbx.climbx.common.enums.RoleType;
 import com.climbx.climbx.user.dto.DailyHistoryResponseDto;
 import com.climbx.climbx.user.dto.RatingResponseDto;
 import com.climbx.climbx.user.dto.UserProfileResponseDto;
@@ -332,11 +332,12 @@ public class UserFixture {
     }
 
     // OutboxEventEntity 생성 메서드들
-    public static OutboxEventEntity createOutboxEventEntity(String aggregateId, OutboxEventType eventType) {
+    public static OutboxEventEntity createOutboxEventEntity(String aggregateId,
+        OutboxEventType eventType) {
         return createOutboxEventEntity(UUID.randomUUID(), "Problem", aggregateId, eventType, false);
     }
 
-    public static OutboxEventEntity createOutboxEventEntity(UUID eventId, String aggregateType, 
+    public static OutboxEventEntity createOutboxEventEntity(UUID eventId, String aggregateType,
         String aggregateId, OutboxEventType eventType, boolean processed) {
         return OutboxEventEntity.builder()
             .eventId(eventId)

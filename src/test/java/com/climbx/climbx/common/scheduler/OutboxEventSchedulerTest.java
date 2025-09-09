@@ -1,11 +1,8 @@
 package com.climbx.climbx.common.scheduler;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
 
 import com.climbx.climbx.common.entity.OutboxEventEntity;
 import com.climbx.climbx.common.enums.OutboxEventType;
@@ -45,7 +42,7 @@ class OutboxEventSchedulerTest {
             String problemId = UUID.randomUUID().toString();
             OutboxEventEntity event = UserFixture.createOutboxEventEntity(
                 problemId, OutboxEventType.PROBLEM_TIER_CHANGED);
-            
+
             given(outboxEventRepository.findAllUnprocessedOrderByOccurredAtAsc())
                 .willReturn(List.of(event));
 

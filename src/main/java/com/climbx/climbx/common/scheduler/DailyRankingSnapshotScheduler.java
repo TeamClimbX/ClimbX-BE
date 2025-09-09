@@ -13,9 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * DailyRankingSnapshotScheduler는 매일 정해진 시간에 사용자 랭킹 통계를 히스토리 테이블에 스냅샷으로 저장하는 스케줄러입니다.
- *
+ * <p>
  * - snapshotDailyRanking: 매일 00:05에 모든 사용자의 rating, longestStreak, solvedCount를 히스토리에 저장
- *
+ * <p>
  * TODO: 인테그레이션 테스트 추가 필요 - 실제 DB와 함께 스케줄링 동작 및 데이터 정합성 검증
  * TODO: 개발 환경용 테스트 API 추가 필요 - 스케줄러 수동 실행 엔드포인트
  * TODO: 개발 환경에서는 배치 실행 주기를 짧게 설정 (예: 2분) 하여 로컬 테스트 편의성 향상
@@ -44,12 +44,13 @@ public class DailyRankingSnapshotScheduler {
                 successCount++;
             } catch (Exception e) {
                 failureCount++;
-                log.error("Failed to create ranking snapshot for userId: {}, error: {}", 
+                log.error("Failed to create ranking snapshot for userId: {}, error: {}",
                     userStat.userId(), e.getMessage(), e);
             }
         }
 
-        log.info("Daily ranking snapshot completed for date: {} - Total: {}, Success: {}, Failure: {}", 
+        log.info(
+            "Daily ranking snapshot completed for date: {} - Total: {}, Success: {}, Failure: {}",
             today, userStats.size(), successCount, failureCount);
     }
 }
