@@ -83,10 +83,7 @@ public class VideoService {
         }
 
         // Soft delete 수행
-        int deletedCount = videoRepository.softDeleteByVideoId(videoId);
-        if (deletedCount == 0) {
-            throw new VideoNotFoundException(videoId);
-        }
+        videoEntity.softDelete();
 
         return VideoDeleteResponseDto.from(videoId);
     }
