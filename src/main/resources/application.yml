@@ -38,3 +38,11 @@ logging:
   level:
     root: INFO
     com.climbx: INFO
+
+# Scheduler Configuration
+scheduler:
+  ranking:
+    batch-size: 1000
+  outbox:
+    batch-size: 500
+    user-rating-batch-size: 100

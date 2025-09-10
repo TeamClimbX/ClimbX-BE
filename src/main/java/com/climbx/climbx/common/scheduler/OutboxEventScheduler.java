@@ -2,10 +2,13 @@ package com.climbx.climbx.common.scheduler;
 
 import com.climbx.climbx.common.entity.OutboxEventEntity;
 import com.climbx.climbx.common.repository.OutboxEventRepository;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
@@ -14,8 +17,7 @@ import org.springframework.scheduling.annotation.Scheduled;
  * <p>
  * - processAllOutboxEvents: 매 정각 Outbox에서 미처리 이벤트를 조회하고 각각을 독립적인 트랜잭션으로 처리 - 각 이벤트는
  * OutboxEventProcessor.processEventInNewTransaction()을 통해 개별 트랜잭션으로 처리됨 - 한 이벤트 처리 실패가 다른 이벤트 처리에
- * 영향을 주지 않음
- * <p>
+ * 영향을 주지 않음 * <p>
  * TODO: 배치 처리 재시도 메커니즘 개선 필요
  * TODO: 인테그레이션 테스트 추가 필요 - 실제 DB와 함께 스케줄링 동작 검증
  * TODO: 개발 환경용 테스트 API 추가 필요 - 스케줄러 수동 실행 엔드포인트
@@ -30,29 +32,45 @@ public class OutboxEventScheduler {
     private final OutboxEventRepository outboxEventRepository;
     private final OutboxEventProcessor outboxEventProcessor;
 
+    @Value("${scheduler.outbox.batch-size:500}")
+    private int batchSize;
+
     /**
      * Outbox에서 미처리 이벤트들을 모두 처리합니다. 이벤트 타입에 따라 적절한 처리 로직을 호출합니다. dev 환경: 매 1분, prod 환경: 매 정각
      */
     @Scheduled(cron = "${scheduler.outbox.cron:0 0 * * * *}", zone = "Asia/Seoul")
     public void processAllOutboxEvents() {
-        List<OutboxEventEntity> events = outboxEventRepository.findAllUnprocessedOrderByOccurredAtAsc();
         int successCount = 0;
         int failureCount = 0;
+        long totalEvents = 0;
+        Page<OutboxEventEntity> eventsPage;
+        int pageNumber = 0;
 
-        for (OutboxEventEntity event : events) {
-            try {
-                outboxEventProcessor.processEventInNewTransaction(event);
-                successCount++;
-            } catch (Exception e) {
-                failureCount++;
-                log.error("Failed to process {} event for aggregateId: {}, error: {}",
-                    event.eventType(), event.aggregateId(), e.getMessage(), e);
+        do {
+            Pageable pageable = PageRequest.of(pageNumber++, batchSize);
+            eventsPage = outboxEventRepository.findAllUnprocessedOrderByOccurredAtAsc(pageable);
+            totalEvents += eventsPage.getNumberOfElements();
+
+            if (eventsPage.hasContent()) {
+                log.debug("Processing outbox event batch {} with {} events (total processed: {})",
+                    pageNumber, eventsPage.getNumberOfElements(), totalEvents);
             }
-        }
 
-        if (!events.isEmpty()) {
+            for (OutboxEventEntity event : eventsPage.getContent()) {
+                try {
+                    outboxEventProcessor.processEventInNewTransaction(event);
+                    successCount++;
+                } catch (Exception e) {
+                    failureCount++;
+                    log.error("Failed to process {} event for aggregateId: {}, error: {}",
+                        event.eventType(), event.aggregateId(), e.getMessage(), e);
+                }
+            }
+        } while (eventsPage.hasNext());
+
+        if (totalEvents > 0) {
             log.info("Processed {} outbox events - Success: {}, Failure: {}",
-                events.size(), successCount, failureCount);
+                totalEvents, successCount, failureCount);
         }
     }
 

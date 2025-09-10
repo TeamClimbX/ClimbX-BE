@@ -3,10 +3,13 @@ package com.climbx.climbx.common.scheduler;
 import com.climbx.climbx.common.entity.OutboxEventEntity;
 import com.climbx.climbx.common.repository.OutboxEventRepository;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +22,9 @@ public class OutboxEventProcessor {
     private final SubmissionRepository submissionRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final UserRatingProcessor userRatingProcessor;
+    
+    @Value("${scheduler.outbox.user-rating-batch-size:100}")
+    private int userRatingBatchSize;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processEventInNewTransaction(OutboxEventEntity event) {
@@ -48,22 +54,35 @@ public class OutboxEventProcessor {
     }
 
     private void updateUserRatingsForProblem(UUID problemId) {
-        List<Long> userIds = submissionRepository.findDistinctUserIdsByProblemId(problemId);
         int successCount = 0;
         int failureCount = 0;
+        long totalUsers = 0;
+        Page<Long> userIdsPage;
+        int pageNumber = 0;
 
-        for (Long userId : userIds) {
-            try {
-                userRatingProcessor.updateUserRatingInNewTransaction(userId);
-                successCount++;
-            } catch (Exception e) {
-                failureCount++;
-                log.error("Failed to update rating for userId: {}, error: {}", userId,
-                    e.getMessage(), e);
+        do {
+            Pageable pageable = PageRequest.of(pageNumber++, userRatingBatchSize);
+            userIdsPage = submissionRepository.findDistinctUserIdsByProblemId(problemId, pageable);
+            totalUsers += userIdsPage.getNumberOfElements();
+            
+            if (userIdsPage.hasContent()) {
+                log.debug("Processing user rating batch {} with {} users for problem: {} (total processed: {})", 
+                    pageNumber, userIdsPage.getNumberOfElements(), problemId, totalUsers);
             }
-        }
+
+            for (Long userId : userIdsPage.getContent()) {
+                try {
+                    userRatingProcessor.updateUserRatingInNewTransaction(userId);
+                    successCount++;
+                } catch (Exception e) {
+                    failureCount++;
+                    log.error("Failed to update rating for userId: {}, error: {}", userId,
+                        e.getMessage(), e);
+                }
+            }
+        } while (userIdsPage.hasNext());
 
         log.info("Updated ratings for problem: {} - Total: {}, Success: {}, Failure: {}",
-            problemId, userIds.size(), successCount, failureCount);
+            problemId, totalUsers, successCount, failureCount);
     }
 }

@@ -23,16 +23,21 @@ public class OutboxService {
         String aggregateId,
         OutboxEventType eventType
     ) {
-        OutboxEventEntity event = OutboxEventEntity.builder()
-            .eventId(UUID.randomUUID())
-            .aggregateType(aggregateType)
-            .aggregateId(aggregateId)
-            .eventType(eventType)
-            .occurredAt(LocalDateTime.now())
-            .build();
+        try {
+            OutboxEventEntity event = OutboxEventEntity.builder()
+                .eventId(UUID.randomUUID())
+                .aggregateType(aggregateType)
+                .aggregateId(aggregateId)
+                .eventType(eventType)
+                .occurredAt(LocalDateTime.now())
+                .build();
 
-        outboxEventRepository.save(event);
+            outboxEventRepository.save(event);
+        } catch (Exception e) {
+            log.error(
+                "Failed to record outbox event for aggregateType: {}, aggregateId: {}, eventType: {}, error: {}",
+                aggregateType, aggregateId, eventType, e.getMessage(), e);
+            throw e;
+        }
     }
 }
-
-

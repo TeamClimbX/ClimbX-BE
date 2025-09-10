@@ -17,6 +17,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class DailyRankingSnapshotSchedulerTest {
@@ -38,11 +42,14 @@ class DailyRankingSnapshotSchedulerTest {
         @DisplayName("모든 유저 통계를 3개 기준으로 히스토리에 저장한다")
         void shouldSaveAllUserStatsToHistoryWithThreeCriteria() {
             // given
+            ReflectionTestUtils.setField(dailyRankingSnapshotScheduler, "batchSize", 1000);
+            
             UserStatEntity userStat1 = UserFixture.createUserStatEntity(1L, 1500);
             UserStatEntity userStat2 = UserFixture.createUserStatEntity(2L, 1600);
             List<UserStatEntity> userStats = List.of(userStat1, userStat2);
-
-            given(userStatRepository.findAll()).willReturn(userStats);
+            
+            Page<UserStatEntity> page = new PageImpl<>(userStats);
+            given(userStatRepository.findAll(any(Pageable.class))).willReturn(page);
 
             // when
             dailyRankingSnapshotScheduler.snapshotDailyRanking();
@@ -56,7 +63,10 @@ class DailyRankingSnapshotSchedulerTest {
         @DisplayName("유저가 없을 때 정상적으로 완료한다")
         void shouldCompleteNormallyWhenNoUsers() {
             // given
-            given(userStatRepository.findAll()).willReturn(Collections.emptyList());
+            ReflectionTestUtils.setField(dailyRankingSnapshotScheduler, "batchSize", 1000);
+            
+            Page<UserStatEntity> emptyPage = new PageImpl<>(Collections.emptyList());
+            given(userStatRepository.findAll(any(Pageable.class))).willReturn(emptyPage);
 
             // when
             dailyRankingSnapshotScheduler.snapshotDailyRanking();
