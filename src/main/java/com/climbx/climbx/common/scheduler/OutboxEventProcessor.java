@@ -2,6 +2,8 @@ package com.climbx.climbx.common.scheduler;
 
 import com.climbx.climbx.common.entity.OutboxEventEntity;
 import com.climbx.climbx.common.repository.OutboxEventRepository;
+import com.climbx.climbx.common.scheduler.exception.OutboxEventProcessingException;
+import com.climbx.climbx.common.scheduler.exception.UnknownOutboxEventTypeException;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +33,12 @@ public class OutboxEventProcessor {
         try {
             switch (event.eventType()) {
                 case PROBLEM_TIER_CHANGED -> processProblemTierEvent(event);
-                default -> log.warn("Unknown event type: {} for aggregateId: {}",
-                    event.eventType(), event.aggregateId());
+                default -> {
+                    String eventType = event.eventType().toString();
+                    String aggregateId = event.aggregateId();
+                    log.warn("Unknown event type: {} for aggregateId: {}", eventType, aggregateId);
+                    throw new UnknownOutboxEventTypeException(eventType, aggregateId);
+                }
             }
             event.markProcessed();
             // Detached 엔티티 변경 사항을 새 트랜잭션에 반영
@@ -40,9 +46,11 @@ public class OutboxEventProcessor {
             log.debug("Successfully processed {} event for aggregateId: {}",
                 event.eventType(), event.aggregateId());
         } catch (Exception e) {
+            String eventType = event.eventType().toString();
+            String aggregateId = event.aggregateId();
             log.error("Failed to process {} event for aggregateId: {}, error: {}",
-                event.eventType(), event.aggregateId(), e.getMessage(), e);
-            throw e;
+                eventType, aggregateId, e.getMessage(), e);
+            throw new OutboxEventProcessingException(eventType, aggregateId, e);
         }
     }
 

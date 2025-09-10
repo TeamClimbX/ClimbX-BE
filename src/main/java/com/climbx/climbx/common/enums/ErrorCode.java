@@ -62,6 +62,14 @@ public enum ErrorCode {
     INVALID_RANKING_CRITERIA(HttpStatus.BAD_REQUEST, "유효하지 않은 랭킹 기준입니다."),
 
     /**
+     * Scheduler errors
+     */
+    OUTBOX_EVENT_PROCESSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Outbox 이벤트 처리에 실패했습니다."),
+    USER_RATING_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "사용자 레이팅 업데이트에 실패했습니다."),
+    RANKING_SNAPSHOT_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "랭킹 스냅샷 생성에 실패했습니다."),
+    UNKNOWN_OUTBOX_EVENT_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, "알 수 없는 Outbox 이벤트 타입입니다."),
+
+    /**
      * Rating Util errors
      */
     INVALID_RATING_VALUE(HttpStatus.BAD_REQUEST, "유효하지 않은 레이팅 값입니다. 0이상 3100 이하의 정수 값을 입력해주세요."),

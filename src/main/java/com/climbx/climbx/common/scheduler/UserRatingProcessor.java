@@ -1,5 +1,6 @@
 package com.climbx.climbx.common.scheduler;
 
+import com.climbx.climbx.common.scheduler.exception.UserRatingUpdateException;
 import com.climbx.climbx.user.service.UserDataAggregationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +23,7 @@ public class UserRatingProcessor {
         } catch (Exception e) {
             log.error("Failed to update rating for userId: {}, error: {}", userId, e.getMessage(),
                 e);
-            throw e;
+            throw new UserRatingUpdateException(userId, e);
         }
     }
 }

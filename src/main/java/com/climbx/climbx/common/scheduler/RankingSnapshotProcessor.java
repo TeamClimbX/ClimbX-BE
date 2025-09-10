@@ -1,6 +1,7 @@
 package com.climbx.climbx.common.scheduler;
 
 import com.climbx.climbx.common.enums.CriteriaType;
+import com.climbx.climbx.common.scheduler.exception.RankingSnapshotCreationException;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import com.climbx.climbx.user.entity.UserRankingHistoryEntity;
 import com.climbx.climbx.user.entity.UserStatEntity;
@@ -54,7 +55,7 @@ public class RankingSnapshotProcessor {
             Long safeUserId = userStat.userId();
             log.error("Failed to create ranking snapshot for userId: {}, error: {}",
                 safeUserId, e.getMessage(), e);
-            throw e;
+            throw new RankingSnapshotCreationException(safeUserId, e);
         }
     }
 }
