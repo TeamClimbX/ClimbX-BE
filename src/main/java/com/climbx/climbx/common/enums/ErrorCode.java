@@ -68,6 +68,7 @@ public enum ErrorCode {
     USER_RATING_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "사용자 레이팅 업데이트에 실패했습니다."),
     RANKING_SNAPSHOT_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "랭킹 스냅샷 생성에 실패했습니다."),
     UNKNOWN_OUTBOX_EVENT_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, "알 수 없는 Outbox 이벤트 타입입니다."),
+    OUTBOX_EVENT_RECORD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Outbox 이벤트 기록에 실패했습니다."),
 
     /**
      * Rating Util errors

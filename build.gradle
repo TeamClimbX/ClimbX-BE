@@ -57,6 +57,7 @@ test {
     useJUnitPlatform()
     finalizedBy jacocoTestReport    // 테스트 실행 후 Jacoco 리포트 생성
     maxParallelForks = 1
+    outputs.upToDateWhen { false }  // 항상 테스트 실행
 }
 
 jacocoTestReport {
