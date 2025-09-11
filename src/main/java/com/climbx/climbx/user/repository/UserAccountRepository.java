@@ -1,6 +1,5 @@
 package com.climbx.climbx.user.repository;
 
-import com.climbx.climbx.common.enums.RoleType;
 import com.climbx.climbx.user.entity.UserAccountEntity;
 import java.util.List;
 import java.util.Optional;

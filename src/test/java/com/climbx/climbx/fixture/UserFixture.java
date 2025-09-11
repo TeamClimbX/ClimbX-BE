@@ -3,7 +3,9 @@ package com.climbx.climbx.fixture;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
+import com.climbx.climbx.common.entity.OutboxEventEntity;
 import com.climbx.climbx.common.enums.CriteriaType;
+import com.climbx.climbx.common.enums.OutboxEventType;
 import com.climbx.climbx.common.enums.RoleType;
 import com.climbx.climbx.user.dto.DailyHistoryResponseDto;
 import com.climbx.climbx.user.dto.RatingResponseDto;
@@ -15,9 +17,11 @@ import com.climbx.climbx.user.enums.UserTierType;
 import com.climbx.climbx.user.repository.UserStatRepository;
 import com.climbx.climbx.user.util.UserRatingUtil;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public class UserFixture {
 
@@ -325,5 +329,23 @@ public class UserFixture {
 
     public static void stubUserStatNotFound(UserStatRepository userStatRepository, Long userId) {
         given(userStatRepository.findByUserId(userId)).willReturn(Optional.empty());
+    }
+
+    // OutboxEventEntity 생성 메서드들
+    public static OutboxEventEntity createOutboxEventEntity(String aggregateId,
+        OutboxEventType eventType) {
+        return createOutboxEventEntity(UUID.randomUUID(), "Problem", aggregateId, eventType, false);
+    }
+
+    public static OutboxEventEntity createOutboxEventEntity(UUID eventId, String aggregateType,
+        String aggregateId, OutboxEventType eventType, boolean processed) {
+        return OutboxEventEntity.builder()
+            .eventId(eventId)
+            .aggregateType(aggregateType)
+            .aggregateId(aggregateId)
+            .eventType(eventType)
+            .occurredAt(LocalDateTime.now().minusMinutes(10))
+            .processed(processed)
+            .build();
     }
 } 

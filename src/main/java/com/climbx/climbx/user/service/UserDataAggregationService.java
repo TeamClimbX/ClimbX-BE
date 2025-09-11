@@ -1,7 +1,9 @@
 package com.climbx.climbx.user.service;
 
 import com.climbx.climbx.common.enums.StatusType;
+import com.climbx.climbx.problem.dto.ProblemInfoResponseDto;
 import com.climbx.climbx.problem.dto.TagRatingPairDto;
+import com.climbx.climbx.problem.enums.ProblemTierType;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
 import com.climbx.climbx.user.dto.RatingResponseDto;
 import com.climbx.climbx.user.dto.TagRatingResponseDto;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +35,6 @@ public class UserDataAggregationService {
 
     private final UserStatRepository userStatRepository;
     private final SubmissionRepository submissionRepository;
-    private final UserRatingUtil userRatingUtil;
 
     public UserProfileResponseDto buildProfile(UserAccountEntity userAccount) {
         Long userId = userAccount.userId();
@@ -42,26 +44,17 @@ public class UserDataAggregationService {
         Integer ratingRank = userStatRepository.findRankByRatingAndUpdatedAtAndUserId(
             userStat.rating(), userStat.updatedAt(), userId);
 
-        List<TagRatingResponseDto> categoryRatings = userRatingUtil.calculateCategoryRating(
+        List<TagRatingResponseDto> categoryRatings = UserRatingUtil.calculateCategoryRating(
             submissionRepository.getUserAcceptedSubmissionTagSummary(userId, StatusType.ACCEPTED),
             submissionRepository.getUserAcceptedSubmissionTagSummary(userId, null)
         );
 
-        Integer totalRating = userStat.rating();
-        Integer topProblemRating = userStat.topProblemRating();
-        Integer submissionRating = UserRatingUtil.calculateSubmissionScore(
-            userStat.submissionCount());
-        Integer solvedRating = UserRatingUtil.calculateSolvedScore(userStat.solvedCount());
-        Integer contributionRating = UserRatingUtil.calculateContributionScore(
-            userStat.contributionCount());
-
-        RatingResponseDto rating = RatingResponseDto.builder()
-            .totalRating(totalRating)
-            .topProblemRating(topProblemRating)
-            .submissionRating(submissionRating)
-            .solvedRating(solvedRating)
-            .contributionRating(contributionRating)
-            .build();
+        RatingResponseDto rating = UserRatingUtil.calculateUserRating(
+            userStat.topProblemRating(),
+            userStat.submissionCount(),
+            userStat.solvedCount(),
+            userStat.contributionCount()
+        );
 
         return UserProfileResponseDto.from(
             userAccount,
@@ -113,7 +106,7 @@ public class UserDataAggregationService {
                 UserTierType tier = UserTierType.fromValue(userStat.rating());
                 Integer ratingRank = rankingMap.get(userId);
 
-                List<TagRatingResponseDto> categoryRatings = userRatingUtil.calculateCategoryRating(
+                List<TagRatingResponseDto> categoryRatings = UserRatingUtil.calculateCategoryRating(
                     acceptedTagsMap.getOrDefault(userId, List.of()),
                     allTagsMap.getOrDefault(userId, List.of())
                 );
@@ -155,14 +148,59 @@ public class UserDataAggregationService {
     }
 
     private RatingResponseDto buildRatingResponse(UserStatEntity userStat) {
-        return RatingResponseDto.builder()
-            .totalRating(userStat.rating())
-            .topProblemRating(userStat.topProblemRating())
-            .submissionRating(UserRatingUtil.calculateSubmissionScore(userStat.submissionCount()))
-            .solvedRating(UserRatingUtil.calculateSolvedScore(userStat.solvedCount()))
-            .contributionRating(
-                UserRatingUtil.calculateContributionScore(userStat.contributionCount()))
-            .build();
+        return UserRatingUtil.calculateUserRating(
+            userStat.topProblemRating(),
+            userStat.submissionCount(),
+            userStat.solvedCount(),
+            userStat.contributionCount()
+        );
+    }
+
+    /**
+     * 현재 UserStat 엔티티의 값들로 rating을 계산합니다. AdminSubmissionService에서 단순 계산이 필요할 때 사용됩니다.
+     */
+    public RatingResponseDto calculateUserRatingFromCurrentStats(UserStatEntity userStat) {
+        return UserRatingUtil.calculateUserRating(
+            userStat.topProblemRating(),
+            userStat.submissionCount(),
+            userStat.solvedCount(),
+            userStat.contributionCount()
+        );
+    }
+
+    /**
+     * topProblemRating을 갱신한 후 전체 레이팅을 재계산하고 UserStat을 업데이트합니다. 배치 처리나 전체 재계산이 필요할 때 사용됩니다.
+     */
+    @Transactional
+    public void recalculateAndUpdateUserRating(Long userId) {
+        UserStatEntity userStat = findUserStatByUserId(userId);
+
+        List<Integer> topProblemRatings = getUserTopProblemRatings(userId);
+
+        // topProblemRating을 상위 50개 문제의 티어 점수 합계로 갱신
+        int actualTopProblemRating = topProblemRatings.stream()
+            .mapToInt(rating -> ProblemTierType.fromValue(rating).value() * 2)
+            .sum();
+
+        userStat.setTopProblemRating(actualTopProblemRating);
+
+        // 갱신된 값들로 rating 재계산 (단순 계산 메서드 호출)
+        RatingResponseDto updatedRating = calculateUserRatingFromCurrentStats(userStat);
+
+        userStat.setRating(updatedRating.totalRating());
+
+        log.debug("Updated user rating for userId: {}, new rating: {}",
+            userId, updatedRating.totalRating());
+    }
+
+    private List<Integer> getUserTopProblemRatings(Long userId) {
+        return submissionRepository.getUserTopProblems(
+                userId,
+                StatusType.ACCEPTED,
+                Pageable.ofSize(50)
+            ).stream()
+            .map(ProblemInfoResponseDto::rating)
+            .toList();
     }
 
     protected UserStatEntity findUserStatByUserId(Long userId) {

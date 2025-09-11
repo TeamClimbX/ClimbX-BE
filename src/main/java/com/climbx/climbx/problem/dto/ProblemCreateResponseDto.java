@@ -2,8 +2,8 @@ package com.climbx.climbx.problem.dto;
 
 import com.climbx.climbx.common.enums.ActiveStatusType;
 import com.climbx.climbx.gym.enums.GymTierType;
-import com.climbx.climbx.problem.enums.HoldColorType;
 import com.climbx.climbx.problem.entity.ProblemEntity;
+import com.climbx.climbx.problem.enums.HoldColorType;
 import java.util.UUID;
 import lombok.Builder;
 

@@ -9,11 +9,10 @@ import com.climbx.climbx.problem.service.ProblemService;
 import com.climbx.climbx.submission.entity.SubmissionEntity;
 import com.climbx.climbx.submission.exception.PendingSubmissionNotFoundException;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
-import com.climbx.climbx.user.dto.RatingResponseDto;
 import com.climbx.climbx.user.entity.UserStatEntity;
 import com.climbx.climbx.user.exception.UserNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
-import com.climbx.climbx.user.util.UserRatingUtil;
+import com.climbx.climbx.user.service.UserDataAggregationService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +27,7 @@ public class AdminSubmissionService {
 
     private final SubmissionRepository submissionRepository;
     private final UserStatRepository userStatRepository;
+    private final UserDataAggregationService userDataAggregationService;
     private final ContributionRepository contributionRepository;
     private final ProblemService problemService;
 
@@ -65,17 +65,12 @@ public class AdminSubmissionService {
 
         if (submission.status() == StatusType.ACCEPTED) {
             userStat.incrementSolvedProblemsCount();
-            RatingResponseDto rating = UserRatingUtil.calculateUserRating(
-                userStat.topProblemRating(),
-                userStat.submissionCount(),
-                userStat.solvedCount(),
-                userStat.contributionCount()
-            );
 
-            userStat.setRating(rating.totalRating());
-            userStat.setTopProblemRating(rating.topProblemRating());
-            // Category Rating은 batch에서 처리
+            // topProblemRating 갱신 후 전체 레이팅 재계산
+            userDataAggregationService.recalculateAndUpdateUserRating(userId);
 
+            log.info("User {} (ID: {}) rating updated after submission approval",
+                userStat.userAccountEntity().nickname(), userId);
             contributionRepository.findByUserIdAndProblemId(
                 userId,
                 problemId
@@ -91,7 +86,8 @@ public class AdminSubmissionService {
 
             log.info("User {} (ID: {}) new rating: {}",
                 userStat.userAccountEntity().nickname(),
-                userId, rating.totalRating());
+                userId, userStat.rating());
+
         }
 
         return SubmissionReviewResponseDto.builder()

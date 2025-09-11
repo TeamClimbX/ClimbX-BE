@@ -1,11 +1,11 @@
 package com.climbx.climbx.problem.dto;
 
 import com.climbx.climbx.common.enums.ActiveStatusType;
-import com.climbx.climbx.gym.enums.GymTierType;
 import com.climbx.climbx.gym.entity.GymAreaEntity;
 import com.climbx.climbx.gym.entity.GymEntity;
-import com.climbx.climbx.problem.enums.HoldColorType;
+import com.climbx.climbx.gym.enums.GymTierType;
 import com.climbx.climbx.problem.entity.ProblemEntity;
+import com.climbx.climbx.problem.enums.HoldColorType;
 import com.climbx.climbx.problem.enums.ProblemTierType;
 import java.time.LocalDateTime;
 import java.util.UUID;

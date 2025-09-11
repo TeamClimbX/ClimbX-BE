@@ -24,3 +24,10 @@ springdoc:
   packages-to-scan: com.climbx.climbx
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
+
+# 개발 환경용 스케줄러
+scheduler:
+  outbox:
+    cron: "0 */1 * * * *"  # 매 1분마다 실행
+  ranking:
+    cron: "0 */2 * * * *"  # 매 2분마다 실행

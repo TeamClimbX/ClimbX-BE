@@ -44,7 +44,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("AuthService 테스트")
 class AuthServiceTest {
 
-
     @Mock
     private JwtContext jwtContext;
 

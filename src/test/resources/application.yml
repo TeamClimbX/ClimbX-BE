@@ -1,17 +1,61 @@
+scheduler:
+  outbox:
+    cron: "0 0 0 31 2 *"  # 실행되지 않는 cron (수동 트리거용)
+  ranking:
+    cron: "0 0 0 31 2 *"  # 실행되지 않는 cron (수동 트리거용)
+
+auth:
+  jwt:
+    secret: test-secret-key-for-jwt-token-generation-that-is-long-enough-to-meet-requirements
+    access-token-expiration: 86400  # 1 day in seconds
+    refresh-token-expiration: 604800  # 7 days in seconds
+    issuer: test-issuer
+    audience: test-audience
+    jws-algorithm: HS256
+
+aws:
+  s3:
+    region: ap-northeast-2
+    access-key: test-access-key
+    secret-key: test-secret-key
+    bucket: test-bucket
+    video-bucket: test-video-bucket
+    cloudfront-domain: test.cloudfront.net
+
 spring:
-  profiles:
-    active: test
+  security:
+    oauth2:
+      kakao:
+        jwks-uri: https://kauth.kakao.com/.well-known/jwks.json
+        issuer: https://kauth.kakao.com
+        audience: test-kakao-audience
+      google:
+        jwks-uri: https://www.googleapis.com/oauth2/v3/certs
+        default-issuer: https://accounts.google.com
+        http-issuer: http://accounts.google.com
+        android-audience: test-android-audience
+        ios-audience: test-ios-audience
+      apple:
+        jwks-uri: https://appleid.apple.com/auth/keys
+        issuer: https://appleid.apple.com
+        android-audience: test-apple-android-audience
+        ios-audience: test-apple-ios-audience
 
   jpa:
     open-in-view: false
+    hibernate:
+      ddl-auto: create-drop  # 테스트 시작 시 생성, 종료 시 삭제
+    show-sql: true  # SQL 로깅 활성화
     properties:
       javax.persistence.validation.mode: CALLBACK
       hibernate:
         globally_quoted_identifiers: true
         globally_quoted_identifiers_skip_column_definitions: true
-        show_sql: false
-        format_sql: false
-
+        format_sql: true
+  
+  flyway:
+    enabled: false  # TestContainers에서는 Flyway 비활성화
+  
   jackson:
     serialization:
       write-dates-as-timestamps: false # ISO 8601 format
@@ -24,6 +68,6 @@ server:
 logging:
   level:
     root: WARN
-    com.climbx: INFO
-    org.springframework: WARN
-    org.hibernate: WARN
+    com.climbx.climbx: DEBUG
+    org.springframework.transaction: DEBUG
+    org.hibernate.SQL: DEBUG

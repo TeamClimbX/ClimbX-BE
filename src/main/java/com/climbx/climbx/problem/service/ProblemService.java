@@ -2,7 +2,9 @@ package com.climbx.climbx.problem.service;
 
 import com.climbx.climbx.common.enums.ActiveStatusType;
 import com.climbx.climbx.common.enums.ErrorCode;
+import com.climbx.climbx.common.enums.OutboxEventType;
 import com.climbx.climbx.common.exception.InvalidParameterException;
+import com.climbx.climbx.common.service.OutboxService;
 import com.climbx.climbx.common.service.S3Service;
 import com.climbx.climbx.gym.entity.GymAreaEntity;
 import com.climbx.climbx.gym.entity.GymEntity;
@@ -59,6 +61,7 @@ public class ProblemService {
     private final ProblemTagRepository problemTagRepository;
     private final ProblemRatingUtil problemRatingUtil;
     private final S3Service s3Service;
+    private final OutboxService outboxService;
 
     public List<ProblemInfoResponseDto> getProblemsWithFilters(
         Long gymId,
@@ -227,7 +230,19 @@ public class ProblemService {
             log.info("User {} has already accepted problem {}, marking vote as accepted",
                 userId, problemId);
 
+            // Capture the original tier before applying the vote
+            ProblemTierType originalTier = problem.tier();
+
             applyVoteToProblem(problem, contribution, votedTags);
+
+            // Outbox: 사용자 난이도 기여 및 (필요 시) 문제 티어 변경 이벤트 기록
+            if (!originalTier.equals(problem.tier())) {
+                outboxService.recordEvent(
+                    "problem",
+                    problem.problemId().toString(),
+                    OutboxEventType.PROBLEM_TIER_CHANGED
+                );
+            }
         }
 
         UserStatEntity userStat = user.userStatEntity();

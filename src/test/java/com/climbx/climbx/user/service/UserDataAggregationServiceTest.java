@@ -6,10 +6,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 
 import com.climbx.climbx.common.enums.RoleType;
 import com.climbx.climbx.common.enums.StatusType;
 import com.climbx.climbx.problem.dto.TagRatingPairDto;
+import com.climbx.climbx.problem.enums.ProblemTagType;
 import com.climbx.climbx.submission.repository.SubmissionRepository;
 import com.climbx.climbx.user.dto.TagRatingResponseDto;
 import com.climbx.climbx.user.dto.UserProfileResponseDto;
@@ -21,7 +23,6 @@ import com.climbx.climbx.user.enums.UserTierType;
 import com.climbx.climbx.user.exception.UserStatNotFoundException;
 import com.climbx.climbx.user.repository.UserStatRepository;
 import com.climbx.climbx.user.util.UserRatingUtil;
-import com.climbx.climbx.problem.enums.ProblemTagType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,9 +43,6 @@ class UserDataAggregationServiceTest {
 
     @Mock
     private SubmissionRepository submissionRepository;
-
-    @Mock
-    private UserRatingUtil userRatingUtil;
 
     @InjectMocks
     private UserDataAggregationService userDataAggregationService;
@@ -118,25 +117,38 @@ class UserDataAggregationServiceTest {
                 .willReturn(acceptedTags);
             given(submissionRepository.getUserAcceptedSubmissionTagSummary(userId, null))
                 .willReturn(allTags);
-            given(userRatingUtil.calculateCategoryRating(acceptedTags, allTags))
-                .willReturn(categoryRatings);
 
             // when
-            UserProfileResponseDto result = userDataAggregationService.buildProfile(user);
+            try (MockedStatic<UserRatingUtil> mockedStatic = mockStatic(UserRatingUtil.class)) {
+                mockedStatic.when(
+                        () -> UserRatingUtil.calculateCategoryRating(acceptedTags, allTags))
+                    .thenReturn(categoryRatings);
+                mockedStatic.when(
+                        () -> UserRatingUtil.calculateUserRating(800, 75, 50, 3))
+                    .thenReturn(com.climbx.climbx.user.dto.RatingResponseDto.builder()
+                        .totalRating(1500)
+                        .topProblemRating(800)
+                        .submissionRating(750)
+                        .solvedRating(396)
+                        .contributionRating(27)
+                        .build());
 
-            // then
-            assertThat(result.nickname()).isEqualTo(nickname);
-            assertThat(result.tier()).isEqualTo(UserTierType.P2);
-            assertThat(result.rating().totalRating()).isEqualTo(1500);
-            assertThat(result.rating().topProblemRating()).isEqualTo(800);
-            assertThat(result.ranking()).isEqualTo(42);
-            assertThat(result.categoryRatings()).hasSize(1);
-            assertThat(result.currentStreak()).isEqualTo(5);
-            assertThat(result.longestStreak()).isEqualTo(10);
-            assertThat(result.solvedCount()).isEqualTo(50);
-            assertThat(result.submissionCount()).isEqualTo(75);
-            assertThat(result.contributionCount()).isEqualTo(3);
-            assertThat(result.rivalCount()).isEqualTo(2);
+                UserProfileResponseDto result = userDataAggregationService.buildProfile(user);
+
+                // then
+                assertThat(result.nickname()).isEqualTo(nickname);
+                assertThat(result.tier()).isEqualTo(UserTierType.P2);
+                assertThat(result.rating().totalRating()).isEqualTo(1500);
+                assertThat(result.rating().topProblemRating()).isEqualTo(800);
+                assertThat(result.ranking()).isEqualTo(42);
+                assertThat(result.categoryRatings()).hasSize(1);
+                assertThat(result.currentStreak()).isEqualTo(5);
+                assertThat(result.longestStreak()).isEqualTo(10);
+                assertThat(result.solvedCount()).isEqualTo(50);
+                assertThat(result.submissionCount()).isEqualTo(75);
+                assertThat(result.contributionCount()).isEqualTo(3);
+                assertThat(result.rivalCount()).isEqualTo(2);
+            }
         }
 
         @Test
@@ -172,18 +184,30 @@ class UserDataAggregationServiceTest {
                 .willReturn(List.of());
             given(submissionRepository.getUserAcceptedSubmissionTagSummary(userId, null))
                 .willReturn(List.of());
-            given(userRatingUtil.calculateCategoryRating(List.of(), List.of()))
-                .willReturn(List.of());
 
             // when
-            UserProfileResponseDto result = userDataAggregationService.buildProfile(user);
+            try (MockedStatic<UserRatingUtil> mockedStatic = mockStatic(UserRatingUtil.class)) {
+                mockedStatic.when(() -> UserRatingUtil.calculateCategoryRating(any(), any()))
+                    .thenReturn(List.of());
+                mockedStatic.when(
+                        () -> UserRatingUtil.calculateUserRating(1500, 75, 50, 3))
+                    .thenReturn(com.climbx.climbx.user.dto.RatingResponseDto.builder()
+                        .totalRating(2500)
+                        .topProblemRating(1500)
+                        .submissionRating(750)
+                        .solvedRating(396)
+                        .contributionRating(27)
+                        .build());
 
-            // then
-            assertThat(result.nickname()).isEqualTo(nickname);
-            assertThat(result.tier()).isEqualTo(UserTierType.M);
-            assertThat(result.rating().totalRating()).isEqualTo(2500);
-            assertThat(result.rating().topProblemRating()).isEqualTo(1500);
-            assertThat(result.ranking()).isEqualTo(1);
+                UserProfileResponseDto result = userDataAggregationService.buildProfile(user);
+
+                // then
+                assertThat(result.nickname()).isEqualTo(nickname);
+                assertThat(result.tier()).isEqualTo(UserTierType.M);
+                assertThat(result.rating().totalRating()).isEqualTo(2500);
+                assertThat(result.rating().topProblemRating()).isEqualTo(1500);
+                assertThat(result.ranking()).isEqualTo(1);
+            }
         }
 
         @Test
@@ -215,18 +239,21 @@ class UserDataAggregationServiceTest {
                 .willReturn(List.of());
             given(submissionRepository.getUserAcceptedSubmissionTagSummary(userId, null))
                 .willReturn(List.of());
-            given(userRatingUtil.calculateCategoryRating(List.of(), List.of()))
-                .willReturn(categoryRatings);
 
             // when
-            UserProfileResponseDto result = userDataAggregationService.buildProfile(user);
+            try (MockedStatic<UserRatingUtil> mockedStatic = mockStatic(UserRatingUtil.class)) {
+                mockedStatic.when(() -> UserRatingUtil.calculateCategoryRating(any(), any()))
+                    .thenReturn(categoryRatings);
 
-            // then
-            assertThat(result.categoryRatings()).hasSize(2);
-            assertThat(result.categoryRatings().get(0).category()).isEqualTo("Bouldering");
-            assertThat(result.categoryRatings().get(0).rating()).isEqualTo(1900);
-            assertThat(result.categoryRatings().get(1).category()).isEqualTo("Sport");
-            assertThat(result.categoryRatings().get(1).rating()).isEqualTo(1700);
+                UserProfileResponseDto result = userDataAggregationService.buildProfile(user);
+
+                // then
+                assertThat(result.categoryRatings()).hasSize(2);
+                assertThat(result.categoryRatings().get(0).category()).isEqualTo("Bouldering");
+                assertThat(result.categoryRatings().get(0).rating()).isEqualTo(1900);
+                assertThat(result.categoryRatings().get(1).category()).isEqualTo("Sport");
+                assertThat(result.categoryRatings().get(1).rating()).isEqualTo(1700);
+            }
         }
     }
 
@@ -283,19 +310,38 @@ class UserDataAggregationServiceTest {
                 .willReturn(allPrimaryTags);
             given(submissionRepository.summarizeBySecondaryBatch(userIds, null))
                 .willReturn(allSecondaryTags);
-            given(userRatingUtil.calculateCategoryRating(any(), any()))
-                .willReturn(categoryRatings);
 
             // when
-            List<UserProfileResponseDto> results = userDataAggregationService.buildProfilesBatch(
-                users);
+            try (MockedStatic<UserRatingUtil> mockedStatic = mockStatic(UserRatingUtil.class)) {
+                mockedStatic.when(() -> UserRatingUtil.calculateCategoryRating(any(), any()))
+                    .thenReturn(categoryRatings);
+                mockedStatic.when(() -> UserRatingUtil.calculateUserRating(800, 75, 50, 3))
+                    .thenReturn(com.climbx.climbx.user.dto.RatingResponseDto.builder()
+                        .totalRating(1500)
+                        .topProblemRating(800)
+                        .submissionRating(750)
+                        .solvedRating(396)
+                        .contributionRating(27)
+                        .build());
+                mockedStatic.when(() -> UserRatingUtil.calculateUserRating(900, 75, 50, 3))
+                    .thenReturn(com.climbx.climbx.user.dto.RatingResponseDto.builder()
+                        .totalRating(1600)
+                        .topProblemRating(900)
+                        .submissionRating(750)
+                        .solvedRating(396)
+                        .contributionRating(27)
+                        .build());
 
-            // then
-            assertThat(results).hasSize(2);
-            assertThat(results.get(0).nickname()).isEqualTo("user1");
-            assertThat(results.get(1).nickname()).isEqualTo("user2");
-            assertThat(results.get(0).ranking()).isEqualTo(42);
-            assertThat(results.get(1).ranking()).isEqualTo(35);
+                List<UserProfileResponseDto> results = userDataAggregationService.buildProfilesBatch(
+                    users);
+
+                // then
+                assertThat(results).hasSize(2);
+                assertThat(results.get(0).nickname()).isEqualTo("user1");
+                assertThat(results.get(1).nickname()).isEqualTo("user2");
+                assertThat(results.get(0).ranking()).isEqualTo(42);
+                assertThat(results.get(1).ranking()).isEqualTo(35);
+            }
         }
 
         @Test
